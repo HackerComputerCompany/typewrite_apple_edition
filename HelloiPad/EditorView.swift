@@ -1,3 +1,21 @@
+// EditorView.swift
+//
+// Main SwiftUI view that hosts the CanvasView (via CanvasRepresentable),
+// the combined toolbar, toast overlay, and help overlay.
+//
+// Autosave: On every keystroke (via onTextChange callback), a 1-second
+// debounce timer fires saveNow() which writes canvas.doc.fullText() into
+// document.text. On scenePhase → .background, saveNow() is called
+// immediately. The ReferenceFileDocument then handles persisting to disk.
+//
+// Toolbar: A single bottom bar with all actions (font, theme, cursor,
+// typewriter, margins, insert, file I/O, help, hide). Toggled with a
+// chevron button. Uses .ultraThinMaterial background.
+//
+// System keyboard: CanvasView conforms to UIKeyInput, so iOS automatically
+// shows the software keyboard when no hardware keyboard is attached,
+// and hides it when one is. No custom keyboard view needed.
+
 import SwiftUI
 
 class CanvasViewState: ObservableObject {

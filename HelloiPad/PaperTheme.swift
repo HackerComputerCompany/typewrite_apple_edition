@@ -1,3 +1,16 @@
+// PaperTheme.swift
+//
+// 10 colour schemes for the typewriter view, matching the X11 originals.
+// Each theme has:
+//   - paper: background colour of the text area
+//   - ink: foreground text colour
+//   - lineNumberInk: colour for line numbers in the gutter
+//   - surround: colour for the margin area outside the paper
+//   - rule: colour for the typewriter horizontal rule line and cursor bar
+//
+// The "Paper" (cream) theme is unique in having dark ink on light paper;
+// all other themes use light ink on dark backgrounds.
+
 import SwiftUI
 
 enum PaperTheme: Int, CaseIterable, Identifiable {

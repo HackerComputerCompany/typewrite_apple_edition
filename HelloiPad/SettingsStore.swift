@@ -1,3 +1,20 @@
+// SettingsStore.swift
+//
+// UserDefaults-backed settings singleton. Persists all user preferences
+// across app launches using the "typewriter." prefix. Acts as the single
+// source of truth that CanvasView reads on every frame via updateFromSettings().
+//
+// Matches the X11 tw_x11_settings.c JSON file fields:
+//   fontindex → fontIndex (0-8, default 2 = Special Elite)
+//   background → themeIndex (0-9, default 0 = Dark)
+//   cursormode → cursorMode (bar/blinkBar/block/blinkBlock/hidden)
+//   linenumbers → gutterMode (off/ascending/descending)
+//   pagemargins → pageMargins (bool, default true)
+//   colsmargined → colsMargined (50-65, default 58)
+//   typewriter → typewriterView (bool, default true)
+//   wordwrap → wordWrap (bool, default true)
+//   insertmode → insertMode (bool, default false)
+
 import UIKit
 
 enum CursorMode: Int, CaseIterable {

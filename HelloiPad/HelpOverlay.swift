@@ -1,3 +1,10 @@
+// HelpOverlay.swift
+//
+// Full-screen keyboard shortcuts overlay. Lists all available actions
+// (font cycling, theme, cursor, margins, typewriter, etc.) with their
+// hardware keyboard shortcuts. Tapping a row executes the action via
+// the onAction callback and dismisses the overlay.
+
 import SwiftUI
 
 struct HelpOverlay: View {

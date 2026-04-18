@@ -1,3 +1,21 @@
+// DocumentModel.swift
+//
+// The character grid document model, ported from the X11 tw_core.c / tw_doc.c.
+//
+// TwCore is a single page: a flat array of Characters with cursor (cx, cy).
+// TwDoc is a multi-page document that wraps TwCore pages, handling page
+// breaks, insert/typeover modes, cursor movement, and text I/O.
+//
+// Key concepts:
+//   - Pages are fixed-size grids (cols × rows) — no line wrapping within a row
+//   - Typing past the last column wraps to the next row
+//   - Typing past the last row creates a new page
+//   - Insert mode shifts characters right; typeover overwrites in place
+//   - The bell callback fires when the cursor reaches the right margin on
+//     typewriter fonts (indices 2-3), matching the X11 bell behaviour
+//   - fullText() serializes all pages with form-feed (\u{0C}) separators
+//   - load() deserializes text back into the grid, replacing all content
+
 import Foundation
 
 struct TwCore {

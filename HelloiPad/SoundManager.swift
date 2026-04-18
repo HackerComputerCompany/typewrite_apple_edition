@@ -1,3 +1,14 @@
+// SoundManager.swift
+//
+// Loads and plays WAV sound effects, one per font category. Key sounds
+// are chosen by font index. Delete/backspace sounds are the same WAV files
+// but with the PCM audio data reversed (frames flipped in the data chunk),
+// giving a "reverse keystroke" effect that distinguishes delete from insert.
+//
+// Sound-pool pattern: rather than allocating a new AVAudioPlayer per keystroke
+// (which causes stuttering at high typing speeds), we use NSCache as a
+// player pool with a count limit of 16. Completed players age out naturally.
+
 import AVFoundation
 
 @MainActor

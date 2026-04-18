@@ -1,3 +1,21 @@
+// FontRegistry.swift
+//
+// Loads 8 bundled TTF fonts at runtime via CTFontManagerRegisterFontsForURL,
+// computes per-character cell metrics (width, height, ascent), and stores
+// them as TypewriterFont structs. A 9th "System Mono" font is added as a
+// fallback using the system monospaced font descriptor.
+//
+// Font-sound mapping (used by SoundManager):
+//   0: Virgil        → virgil_pencil
+//   1: Inter          → ui_tap
+//   2: Special Elite   → typewriter_key / typewriter_carriage / typewriter_bell
+//   3: Courier Prime   → typewriter_key / typewriter_carriage / typewriter_bell
+//   4: VT323           → terminal_blip
+//   5: Press Start 2P  → terminal_blip
+//   6: IBM Plex Mono   → ibm_keyboard
+//   7: Share Tech Mono → arcade_blip
+//   8: System Mono     → simple_blip
+
 import UIKit
 import CoreText
 
