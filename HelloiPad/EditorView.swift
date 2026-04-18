@@ -5,18 +5,19 @@ class CanvasViewState: ObservableObject {
 }
 
 struct EditorView: View {
-    var initialText: String = ""
+    @ObservedObject var document: PlainTextDocument
     @ObservedObject private var settings = SettingsStore.shared
     @State private var showHelp = false
     @State private var toastText: String?
     @State private var toastOpacity: Double = 0
     @State private var toastTimer: Timer?
     @StateObject private var canvasState = CanvasViewState()
-    @State private var fileName = "Typewriter.txt"
     @State private var showDocumentPicker = false
     @State private var showExportPicker = false
     @State private var toolbarVisible = true
+    @State private var autosaveTimer: Timer?
     @FocusState private var canvasFocused: Bool
+    @Environment(\.scenePhase) private var scenePhase
 
     private var canvas: CanvasView { canvasState.canvas }
 
@@ -38,9 +39,14 @@ struct EditorView: View {
         }
         .background(Color(settings.theme.surround))
         .statusBarHidden(!toolbarVisible)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .background {
+                saveNow()
+            }
+        }
         .onAppear {
-            if !initialText.isEmpty {
-                canvas.doc.load(initialText)
+            if !document.text.isEmpty {
+                canvas.doc.load(document.text)
             }
             SoundManager.shared.preload()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -52,6 +58,7 @@ struct EditorView: View {
     private var canvasArea: some View {
         CanvasRepresentable(canvasView: canvas, settings: settings, onTextChange: {
             canvasState.objectWillChange.send()
+            scheduleAutosave()
         })
         .focused($canvasFocused)
     }
@@ -91,7 +98,7 @@ struct EditorView: View {
             Button { showExportPicker = true } label: {
                 Image(systemName: "square.and.arrow.down")
             }
-            .fileExporter(isPresented: $showExportPicker, document: PlainTextDocument(text: canvas.doc.fullText()), contentType: .plainText) { _ in }
+            .fileExporter(isPresented: $showExportPicker, document: document, contentType: .plainText) { _ in }
             Button { withAnimation { toolbarVisible.toggle() } } label: {
                 Image(systemName: "chevron.down")
             }
@@ -130,6 +137,21 @@ struct EditorView: View {
             }
         }
     }
+
+    // MARK: - Autosave
+
+    private func scheduleAutosave() {
+        autosaveTimer?.invalidate()
+        autosaveTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
+            saveNow()
+        }
+    }
+
+    private func saveNow() {
+        document.text = canvas.doc.fullText()
+    }
+
+    // MARK: - Actions
 
     private func handleHelpAction(_ action: HelpOverlay.HelpAction) {
         switch action {
@@ -217,7 +239,7 @@ struct EditorView: View {
             if let data = try? Data(contentsOf: url),
                let text = String(data: data, encoding: .utf8) {
                 canvas.doc.load(text)
-                fileName = url.lastPathComponent
+                saveNow()
             }
         case .failure: break
         }
