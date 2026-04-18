@@ -34,10 +34,19 @@ class FontRegistry {
         ]
 
         for (_, resName, displayName) in fontSpecs {
+            var fontURL: URL?
             if let url = Bundle.main.url(forResource: resName, withExtension: "ttf", subdirectory: "Fonts") {
-                registerFont(from: url)
+                fontURL = url
             } else if let url = Bundle.main.url(forResource: resName, withExtension: "ttf") {
+                fontURL = url
+            }
+
+            if let url = fontURL {
                 registerFont(from: url)
+            } else {
+                #if DEBUG
+                print("[FontRegistry] Font file not found: \(resName).ttf")
+                #endif
             }
 
             let ctFont = CTFontCreateWithName(resName as CFString, 24.0, nil)
@@ -97,7 +106,14 @@ class FontRegistry {
 
     private func registerFont(from url: URL) {
         var error: Unmanaged<CFError>?
-        CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
+        let result = CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
+        if !result {
+            #if DEBUG
+            if let err = error?.takeRetainedValue() {
+                print("[FontRegistry] Failed to register \(url.lastPathComponent): \(err)")
+            }
+            #endif
+        }
     }
 
     func font(at index: Int) -> TypewriterFont {

@@ -281,9 +281,8 @@ class TwDoc {
         for (i, page) in pages.enumerated() {
             if i > 0 { result += "\u{0C}" }
             for row in 0..<page.rows {
-                var line = page.rowString(row)
-                line = line.trimmingTrailingSpaces
-                result += line
+                let line = page.rowString(row)
+                result += line.rtrim(" ")
                 if row < page.rows - 1 { result += "\n" }
             }
         }
@@ -327,9 +326,9 @@ class TwDoc {
 }
 
 extension String {
-    var trimmingTrailingSpaces: String {
+    func rtrim(_ char: Character) -> String {
         var s = self
-        while s.last == " " { s.removeLast() }
+        while s.last == char { s.removeLast() }
         return s
     }
 }

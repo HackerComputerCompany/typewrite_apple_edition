@@ -215,7 +215,8 @@ switch key.keyCode {
         if c == "\n" || c == "\r" {
             handleEnter()
         } else if c == "\t" {
-            for _ in 0..<4 { typeCharWithSound(" ") }
+            soundManager.playKey(for: fontIndex)
+            tabInsert()
         } else {
             typeCharWithSound(c)
         }

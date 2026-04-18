@@ -1,24 +1,31 @@
 import SwiftUI
 
+class CanvasViewState: ObservableObject {
+    let canvas = CanvasView()
+}
+
 struct EditorView: View {
+    var initialText: String = ""
     @ObservedObject private var settings = SettingsStore.shared
     @State private var showHelp = false
     @State private var toastText: String?
     @State private var toastOpacity: Double = 0
     @State private var toastTimer: Timer?
     @State private var showSoftKeyboard = true
-    @State private var canvasView = CanvasView()
+    @StateObject private var canvasState = CanvasViewState()
     @State private var fileName = "Typewriter.txt"
     @State private var showDocumentPicker = false
     @State private var showExportPicker = false
+
+    private var canvas: CanvasView { canvasState.canvas }
 
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 ZStack {
-                    CanvasRepresentable(canvasView: canvasView, settings: settings, onTextChange: {
-                        scheduleAutosave()
-                    }, needsDocSync: true)
+                    CanvasRepresentable(canvasView: canvas, settings: settings, onTextChange: {
+                        canvasState.objectWillChange.send()
+                    })
 
                     toastOverlay
                     helpOverlay
@@ -26,7 +33,7 @@ struct EditorView: View {
                 .frame(maxHeight: .infinity)
 
                 if showSoftKeyboard {
-                    SoftKeyboardRepresentable(theme: settings.theme, canvasView: canvasView)
+                    SoftKeyboardRepresentable(theme: settings.theme, canvasView: canvas)
                         .frame(height: keyboardHeight)
                 }
             }
@@ -44,6 +51,9 @@ struct EditorView: View {
             }
         }
         .onAppear {
+            if !initialText.isEmpty {
+                canvas.doc.load(initialText)
+            }
             SoundManager.shared.preload()
         }
     }
@@ -78,7 +88,7 @@ struct EditorView: View {
                 Image(systemName: showSoftKeyboard ? "keyboard" : "keyboard.badge.chevron.compact.down")
             }
             Spacer()
-            Text("Page \(canvasView.doc.curPage + 1)/\(canvasView.doc.pages.count)")
+            Text("Page \(canvas.doc.curPage + 1)/\(canvas.doc.pages.count)")
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundColor(.secondary)
         }
@@ -98,7 +108,7 @@ struct EditorView: View {
             Button { showExportPicker = true } label: {
                 Image(systemName: "square.and.arrow.down")
             }
-            .fileExporter(isPresented: $showExportPicker, document: PlainTextDocument(text: canvasView.doc.fullText()), contentType: .plainText) { _ in }
+            .fileExporter(isPresented: $showExportPicker, document: PlainTextDocument(text: canvas.doc.fullText()), contentType: .plainText) { _ in }
         }
     }
 
@@ -210,8 +220,6 @@ struct EditorView: View {
         }
     }
 
-    private func scheduleAutosave() {}
-
     private func handleOpen(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
@@ -219,7 +227,7 @@ struct EditorView: View {
             defer { url.stopAccessingSecurityScopedResource() }
             if let data = try? Data(contentsOf: url),
                let text = String(data: data, encoding: .utf8) {
-                canvasView.doc.load(text)
+                canvas.doc.load(text)
                 fileName = url.lastPathComponent
             }
         case .failure: break
@@ -231,7 +239,6 @@ struct CanvasRepresentable: UIViewRepresentable {
     var canvasView: CanvasView
     @ObservedObject var settings: SettingsStore
     var onTextChange: (() -> Void)?
-    var needsDocSync: Bool
 
     func makeUIView(context: Context) -> CanvasView {
         canvasView.onTextChange = onTextChange
@@ -241,9 +248,6 @@ struct CanvasRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: CanvasView, context: Context) {
-        if needsDocSync {
-            uiView.doc = canvasView.doc
-        }
         uiView.onTextChange = onTextChange
         uiView.updateFromSettings()
         uiView.setNeedsDisplay()

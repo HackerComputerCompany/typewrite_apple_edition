@@ -70,7 +70,7 @@ class SoftKeyboardView: UIView {
         container.axis = .vertical
         container.spacing = rowSpacing
         container.alignment = .fill
-        container.distribution = .fillEqually
+        container.distribution = .fill
         container.translatesAutoresizingMaskIntoConstraints = false
         addSubview(container)
 
@@ -90,6 +90,7 @@ class SoftKeyboardView: UIView {
             rowStack.alignment = .fill
             rowStack.distribution = .fill
             container.addArrangedSubview(rowStack)
+            rowStack.heightAnchor.constraint(equalToConstant: keyHeight).isActive = true
 
             var colIdx = 0
             for key in row {
@@ -103,9 +104,10 @@ class SoftKeyboardView: UIView {
                 colIdx += 1
 
                 let isSpecial = isSpecialKey(key)
+                let units = widthUnit(forKey: key)
 
                 if key == "space" {
-                    btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20)
+                    btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
                 }
 
                 btn.backgroundColor = keyBackgroundColor(isSpecial: isSpecial)
@@ -115,10 +117,10 @@ class SoftKeyboardView: UIView {
                 btn.addTarget(self, action: #selector(keyTapped(_:)), for: .touchDown)
                 btn.addTarget(self, action: #selector(keyReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
-                let units = widthUnit(forKey: key)
                 if units != 1.0 {
                     btn.setContentHuggingPriority(.defaultLow, for: .horizontal)
-                    btn.widthAnchor.constraint(greaterThanOrEqualToConstant: keyHeight * 0.8).isActive = true
+                    btn.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+                    btn.widthAnchor.constraint(greaterThanOrEqualToConstant: keyHeight * CGFloat(units)).isActive = true
                 } else {
                     btn.setContentHuggingPriority(.defaultHigh, for: .horizontal)
                     btn.setContentCompressionResistancePriority(.required, for: .horizontal)

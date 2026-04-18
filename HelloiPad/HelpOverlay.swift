@@ -17,7 +17,7 @@ struct HelpOverlay: View {
         case toggleInsert = "toggleInsert"
     }
 
-    private let helpItems: [(String, String, String)] = [
+    private let helpItems: [(String, String, String?)] = [
         ("F2", "Cycle Font", "cycleFont"),
         ("F3", "Cycle Cursor Mode", "cycleCursor"),
         ("F4", "Cycle Background", "cycleTheme"),
@@ -27,9 +27,6 @@ struct HelpOverlay: View {
         ("F8", "Toggle Typewriter View", "toggleTypewriter"),
         ("F10", "Toggle Word Wrap", "toggleWordWrap"),
         ("Ins", "Toggle Insert/Typeover", "toggleInsert"),
-        ("", "", ""),
-        ("Ctrl+S", "Save", ""),
-        ("Ctrl+Q", "Save & Close", ""),
     ]
 
     var body: some View {
@@ -53,11 +50,7 @@ struct HelpOverlay: View {
                 ScrollView {
                     VStack(spacing: 6) {
                         ForEach(helpItems, id: \.0) { item in
-                            if item.0.isEmpty {
-                                Spacer().frame(height: 8)
-                            } else {
-                                helpRow(key: item.0, description: item.1, action: item.2)
-                            }
+                            helpRow(key: item.0, description: item.1, action: item.2)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -78,9 +71,9 @@ struct HelpOverlay: View {
         }
     }
 
-    private func helpRow(key: String, description: String, action: String) -> some View {
+    private func helpRow(key: String, description: String, action: String?) -> some View {
         Button {
-            guard let a = HelpAction(rawValue: action) else { return }
+            guard let action, let a = HelpAction(rawValue: action) else { return }
             onAction(a)
             onDismiss()
         } label: {

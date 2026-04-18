@@ -5,9 +5,7 @@ class SoundManager {
     static let shared = SoundManager()
 
     private var players: [String: AVAudioPlayer] = [:]
-    private var lastKeyPlayer: AVAudioPlayer?
-    private var lastCarriagePlayer: AVAudioPlayer?
-    private var lastBellPlayer: AVAudioPlayer?
+    private let playerPool = NSCache<NSString, AVAudioPlayer>()
 
     enum SoundName: String, CaseIterable {
         case virgilPencil = "virgil_pencil"
@@ -27,6 +25,7 @@ class SoundManager {
         for name in SoundName.allCases {
             load(name)
         }
+        playerPool.countLimit = 16
     }
 
     private func load(_ name: SoundName) {
@@ -57,24 +56,26 @@ class SoundManager {
         case 7: name = .arcadeBlip
         default: name = .simpleBlip
         }
-        play(name, &lastKeyPlayer)
+        playPooled(name)
     }
 
     func playCarriage(for fontIndex: Int) {
         guard fontIndex == 2 || fontIndex == 3 else { return }
-        play(.typewriterCarriage, &lastCarriagePlayer)
+        playPooled(.typewriterCarriage)
     }
 
     func playBell(for fontIndex: Int) {
         guard fontIndex == 2 || fontIndex == 3 else { return }
-        play(.typewriterBell, &lastBellPlayer)
+        playPooled(.typewriterBell)
     }
 
-    private func play(_ name: SoundName, _ lastPlayer: inout AVAudioPlayer?) {
+    private func playPooled(_ name: SoundName) {
         guard let base = players[name.rawValue] else { return }
-        let player = try? AVAudioPlayer(contentsOf: base.url ?? URL(fileURLWithPath: ""))
-        player?.prepareToPlay()
-        player?.play()
-        lastPlayer = player
+        guard let url = base.url else { return }
+        if let player = try? AVAudioPlayer(contentsOf: url) {
+            player.volume = 1.0
+            player.play()
+            playerPool.setObject(player, forKey: "\(name.rawValue)-\(UUID().uuidString)" as NSString)
+        }
     }
 }
