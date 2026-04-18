@@ -7,6 +7,7 @@ class SoundManager {
     private var players: [String: AVAudioPlayer] = [:]
     private var lastKeyPlayer: AVAudioPlayer?
     private var lastCarriagePlayer: AVAudioPlayer?
+    private var lastBellPlayer: AVAudioPlayer?
 
     enum SoundName: String, CaseIterable {
         case virgilPencil = "virgil_pencil"
@@ -66,7 +67,7 @@ class SoundManager {
 
     func playBell(for fontIndex: Int) {
         guard fontIndex == 2 || fontIndex == 3 else { return }
-        play(.typewriterBell, &lastKeyPlayer)
+        play(.typewriterBell, &lastBellPlayer)
     }
 
     private func play(_ name: SoundName, _ lastPlayer: inout AVAudioPlayer?) {

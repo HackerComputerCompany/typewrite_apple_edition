@@ -8,7 +8,6 @@ struct EditorView: View {
     @State private var toastTimer: Timer?
     @State private var showSoftKeyboard = true
     @State private var canvasView = CanvasView()
-    @State private var doc = TwDoc()
     @State private var fileName = "Typewriter.txt"
     @State private var showDocumentPicker = false
     @State private var showExportPicker = false
@@ -17,9 +16,9 @@ struct EditorView: View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 ZStack {
-                    CanvasRepresentable(canvasView: canvasView, doc: $doc, settings: settings, onTextChange: {
+                    CanvasRepresentable(canvasView: canvasView, settings: settings, onTextChange: {
                         scheduleAutosave()
-                    })
+                    }, needsDocSync: true)
 
                     toastOverlay
                     helpOverlay
@@ -79,7 +78,7 @@ struct EditorView: View {
                 Image(systemName: showSoftKeyboard ? "keyboard" : "keyboard.badge.chevron.compact.down")
             }
             Spacer()
-            Text("Page \(doc.curPage + 1)/\(doc.pages.count)")
+            Text("Page \(canvasView.doc.curPage + 1)/\(canvasView.doc.pages.count)")
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundColor(.secondary)
         }
@@ -99,7 +98,7 @@ struct EditorView: View {
             Button { showExportPicker = true } label: {
                 Image(systemName: "square.and.arrow.down")
             }
-            .fileExporter(isPresented: $showExportPicker, document: PlainTextDocument(text: doc.fullText()), contentType: .plainText) { _ in }
+            .fileExporter(isPresented: $showExportPicker, document: PlainTextDocument(text: canvasView.doc.fullText()), contentType: .plainText) { _ in }
         }
     }
 
@@ -220,7 +219,7 @@ struct EditorView: View {
             defer { url.stopAccessingSecurityScopedResource() }
             if let data = try? Data(contentsOf: url),
                let text = String(data: data, encoding: .utf8) {
-                doc.load(text)
+                canvasView.doc.load(text)
                 fileName = url.lastPathComponent
             }
         case .failure: break
@@ -230,12 +229,11 @@ struct EditorView: View {
 
 struct CanvasRepresentable: UIViewRepresentable {
     var canvasView: CanvasView
-    @Binding var doc: TwDoc
     @ObservedObject var settings: SettingsStore
     var onTextChange: (() -> Void)?
+    var needsDocSync: Bool
 
     func makeUIView(context: Context) -> CanvasView {
-        canvasView.doc = doc
         canvasView.onTextChange = onTextChange
         canvasView.updateFromSettings()
         canvasView.becomeFirstResponder()
@@ -243,11 +241,12 @@ struct CanvasRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: CanvasView, context: Context) {
-        uiView.doc = doc
+        if needsDocSync {
+            uiView.doc = canvasView.doc
+        }
         uiView.onTextChange = onTextChange
         uiView.updateFromSettings()
         uiView.setNeedsDisplay()
-        uiView.becomeFirstResponder()
     }
 }
 
@@ -292,7 +291,7 @@ class KeyboardCoordinator: NSObject, SoftKeyboardDelegate {
     }
 
     func softKeyboardDidPressTab(_ keyboard: SoftKeyboardView) {
-        for _ in 0..<4 { canvasView.insertCharacter(" ") }
+        canvasView.insertCharacter("\t")
     }
 
     func softKeyboardDidPressDelete(_ keyboard: SoftKeyboardView) {

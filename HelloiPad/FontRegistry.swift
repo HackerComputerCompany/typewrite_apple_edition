@@ -24,7 +24,7 @@ class FontRegistry {
     private func loadFonts() {
         let fontSpecs: [(String, String, String)] = [
             ("Virgil", "virgil_fixed", "Virgil"),
-            ("Inter", "Inter-Regular", "Inter"),
+            ("Inter", "inter", "Inter"),
             ("Special Elite", "SpecialElite-Regular", "Special Elite"),
             ("Courier Prime", "CourierPrime-Regular", "Courier Prime"),
             ("VT323", "VT323-Regular", "VT323"),

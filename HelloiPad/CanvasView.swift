@@ -9,7 +9,7 @@ class CanvasView: UIView {
     var onTextChange: (() -> Void)?
     var onDocInfoUpdate: ((Int, Int) -> Void)?
 
-    private var displayLink: CADisplayLink?
+    private var displayLinkProxy: DisplayLinkProxy?
     private var cursorVisible = true
     private var lastBlinkTime: CFTimeInterval = 0
     private let blinkInterval: CFTimeInterval = 0.5
@@ -56,19 +56,19 @@ class CanvasView: UIView {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if window != nil && displayLink == nil {
-            displayLink = CADisplayLink(target: self, selector: #selector(tick))
-            displayLink?.add(to: .main, forMode: .common)
+        if window != nil && displayLinkProxy == nil {
+            displayLinkProxy = DisplayLinkProxy(target: self)
+            displayLinkProxy?.link.add(to: .main, forMode: .common)
         }
     }
 
     override func removeFromSuperview() {
-        displayLink?.invalidate()
-        displayLink = nil
+        displayLinkProxy?.link.invalidate()
+        displayLinkProxy = nil
         super.removeFromSuperview()
     }
 
-    @objc private func tick(_ link: CADisplayLink) {
+    @objc func tick(_ link: CADisplayLink) {
         let now = CACurrentMediaTime()
         let mode = settings.cursorMode
         if mode.isBlink {
@@ -283,7 +283,8 @@ switch key.keyCode {
         if c == "\n" || c == "\r" {
             handleEnter()
         } else if c == "\t" {
-            for _ in 0..<4 { typeCharWithSound(" ") }
+            soundManager.playKey(for: fontIndex)
+            tabInsert()
         } else if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii < 127 {
             typeCharWithSound(c)
         }
@@ -301,23 +302,38 @@ switch key.keyCode {
         handleDelete()
     }
 
+    private func tabInsert() {
+        for _ in 0..<4 { doc.putc(" ") }
+        resetCursorBlink()
+        onTextChange?()
+        setNeedsDisplay()
+    }
+
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         let theme = settings.theme
         let twFont = fontRegistry.font(at: fontIndex)
 
-        ctx.setFillColor(theme.surround.cgColor)
-        ctx.fill(bounds)
-
         if pageMargins {
+            ctx.setFillColor(theme.surround.cgColor)
+            ctx.fill(bounds)
+
             let paperRect = CGRect(x: layout.paperX, y: layout.paperY,
                                    width: layout.paperW, height: layout.paperH)
             ctx.setFillColor(theme.paper.cgColor)
             ctx.fill(paperRect)
+        } else {
+            ctx.setFillColor(theme.paper.cgColor)
+            ctx.fill(bounds)
         }
 
-        if typewriterView && !pageMargins {
-            let cursorScreenY = layout.textY0 + CGFloat(doc.pages[doc.curPage].cy) * twFont.cellHeight
+        if typewriterView {
+            let cursorScreenY: CGFloat
+            if pageMargins {
+                cursorScreenY = layout.paperY + CGFloat(doc.pages[doc.curPage].cy) * twFont.cellHeight
+            } else {
+                cursorScreenY = layout.textY0 + CGFloat(doc.pages[doc.curPage].cy) * twFont.cellHeight
+            }
             ctx.setFillColor(theme.surround.cgColor)
             ctx.fill(CGRect(x: 0, y: 0, width: bounds.width, height: cursorScreenY))
         }
@@ -334,7 +350,7 @@ switch key.keyCode {
         let cellH = font.cellHeight
 
         let fgColor = theme.ink.cgColor
-        let bgColor = pageMargins ? theme.paper.cgColor : theme.surround.cgColor
+        let bgColor = theme.paper.cgColor
 
         for row in 0..<min(page.rows, layout.rows) {
             let bufferRow: Int
@@ -378,34 +394,20 @@ switch key.keyCode {
 
     private func drawString(ctx: CGContext, font: TypewriterFont, string: String,
                             x: CGFloat, y: CGFloat, fg: CGColor, bg: CGColor) {
-        let ctFont = font.ctFont
-        let ascent = font.ascent
-        let cellW = font.cellWidth
-        let cellH = font.cellHeight
-
-        guard let cgContext = UIGraphicsGetCurrentContext() else { return }
-
-        let uiFont = UIFont(name: CTFontCopyPostScriptName(ctFont) as String, size: CTFontGetSize(ctFont)) ?? UIFont.systemFont(ofSize: CTFontGetSize(ctFont))
+        let uiFont = UIFont(name: CTFontCopyPostScriptName(font.ctFont) as String, size: CTFontGetSize(font.ctFont)) ?? UIFont.systemFont(ofSize: CTFontGetSize(font.ctFont))
         let attrs: [NSAttributedString.Key: Any] = [
             .font: uiFont,
             .foregroundColor: UIColor(cgColor: fg)
         ]
 
-        let lineSpacing = cellH - ceil(ascent + CTFontGetDescent(ctFont))
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = max(0, lineSpacing)
-
         var currentX = x
-        for (i, c) in string.enumerated() {
+        for (_, c) in string.enumerated() {
             guard c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 else { continue }
             let str = String(c)
-            let charSize = (str as NSString).size(withAttributes: attrs)
-            let drawX = currentX
-            let drawY = y + ascent
-
+            let baselineY = y + font.ascent
             let attrStr = NSAttributedString(string: str, attributes: attrs)
-            attrStr.draw(at: CGPoint(x: drawX, y: y))
-            currentX += cellW
+            attrStr.draw(at: CGPoint(x: currentX, y: baselineY))
+            currentX += font.cellWidth
         }
     }
 
@@ -491,3 +493,15 @@ switch key.keyCode {
         if typewriterView { return }
     }
 }
+
+class DisplayLinkProxy: NSObject {
+    weak var target: CanvasView?
+    var link: CADisplayLink
+
+    init(target: CanvasView) {
+        self.target = target
+        self.link = CADisplayLink(target: target, selector: #selector(CanvasView.tick(_:)))
+        super.init()
+    }
+}
+

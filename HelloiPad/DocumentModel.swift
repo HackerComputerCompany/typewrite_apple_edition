@@ -105,10 +105,9 @@ class TwDoc {
     var bellHandler: (() -> Void)?
 
     private func typeoverPutc(_ c: Character, isLastCol: Bool, isLastRow: Bool) {
-        let wasLastCol = pages[curPage].cx >= cols - 1
+        let oldCy = pages[curPage].cy
         pages[curPage].putc(c)
-        let p = pages[curPage]
-        if wasLastCol && p.cy >= rows - 1 {
+        if isLastRow && oldCy >= rows - 1 && pages[curPage].cy >= rows - 1 && pages[curPage].cx <= 1 {
             bellHandler?()
             newPage()
         }
@@ -211,11 +210,15 @@ class TwDoc {
 
     func moveEnd() {
         let p = pages[curPage]
-        var lastNonSpace = 0
+        var lastNonSpace = -1
         for x in 0..<cols {
             if p.cells[p.cy * cols + x] != " " { lastNonSpace = x }
         }
-        pages[curPage].cx = min(lastNonSpace + 1, cols - 1)
+        if lastNonSpace == -1 {
+            pages[curPage].cx = 0
+        } else {
+            pages[curPage].cx = min(lastNonSpace + 1, cols - 1)
+        }
     }
 
     func pageUp() {
@@ -235,8 +238,8 @@ class TwDoc {
     func resize(cols newCols: Int, rows newRows: Int) {
         let text = fullText()
         let oldPage = curPage
-        let oldCx = pages[curPage].cx
         let oldCy = pages[curPage].cy
+        let oldCx = pages[curPage].cx
         let offset = oldCy * cols + oldCx
 
         cols = newCols
@@ -244,6 +247,9 @@ class TwDoc {
         pages = [TwCore(cols: newCols, rows: newRows)]
         curPage = 0
         var charCount = 0
+        var targetCx = 0
+        var targetCy = 0
+        var targetPage = 0
         for c in text {
             if c == "\u{0C}" {
                 newPage()
@@ -253,11 +259,21 @@ class TwDoc {
             }
             putc(c)
             charCount += 1
-            if charCount <= offset {
-                // cursor tracks
+            if charCount == offset || (charCount > offset && targetPage == 0) {
+                targetCx = pages[curPage].cx
+                targetCy = pages[curPage].cy
+                targetPage = curPage
             }
         }
-        curPage = min(oldPage, pages.count - 1)
+        if pages.count == 1 && pages[0].cells.allSatisfy({ $0 == " " }) {
+            curPage = 0
+            pages[0].cx = 0
+            pages[0].cy = 0
+        } else {
+            curPage = min(targetPage, pages.count - 1)
+            pages[curPage].cx = targetCx
+            pages[curPage].cy = targetCy
+        }
     }
 
     func fullText() -> String {
