@@ -11,59 +11,56 @@ struct EditorView: View {
     @State private var toastText: String?
     @State private var toastOpacity: Double = 0
     @State private var toastTimer: Timer?
-    @State private var showSoftKeyboard = true
     @StateObject private var canvasState = CanvasViewState()
     @State private var fileName = "Typewriter.txt"
     @State private var showDocumentPicker = false
     @State private var showExportPicker = false
+    @State private var toolbarVisible = true
+    @FocusState private var canvasFocused: Bool
 
     private var canvas: CanvasView { canvasState.canvas }
 
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                ZStack {
-                    CanvasRepresentable(canvasView: canvas, settings: settings, onTextChange: {
-                        canvasState.objectWillChange.send()
-                    })
+        ZStack {
+            canvasArea
+                .ignoresSafeArea()
 
-                    toastOverlay
-                    helpOverlay
-                }
-                .frame(maxHeight: .infinity)
-
-                if showSoftKeyboard {
-                    SoftKeyboardRepresentable(theme: settings.theme, canvasView: canvas)
-                        .frame(height: keyboardHeight)
+            VStack {
+                Spacer()
+                if toolbarVisible {
+                    toolbarBar
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+
+            toastOverlay
+            helpOverlay
         }
         .background(Color(settings.theme.surround))
-        .ignoresSafeArea()
-        .statusBarHidden(true)
-        .persistentSystemOverlays(.hidden)
-        .toolbar {
-            ToolbarItemGroup(placement: .bottomBar) {
-                bottomToolbar
-            }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                topToolbar
-            }
-        }
+        .statusBarHidden(!toolbarVisible)
         .onAppear {
             if !initialText.isEmpty {
                 canvas.doc.load(initialText)
             }
             SoundManager.shared.preload()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                canvasFocused = true
+            }
         }
     }
 
-    private var keyboardHeight: CGFloat {
-        SoftKeyboardView.estimatedHeight
+    private var canvasArea: some View {
+        CanvasRepresentable(canvasView: canvas, settings: settings, onTextChange: {
+            canvasState.objectWillChange.send()
+        })
+        .focused($canvasFocused)
     }
 
-    private var bottomToolbar: some View {
-        HStack(spacing: 12) {
+    private var toolbarBar: some View {
+        HStack(spacing: 16) {
+            Button { showHelp = true } label: {
+                Image(systemName: "questionmark.circle")
+            }
             Button { cycleFont() } label: {
                 Image(systemName: "textformat")
             }
@@ -84,21 +81,7 @@ struct EditorView: View {
                     .font(.system(.caption2, design: .monospaced))
                     .monospacedDigit()
             }
-            Button { showSoftKeyboard.toggle() } label: {
-                Image(systemName: showSoftKeyboard ? "keyboard" : "keyboard.badge.chevron.compact.down")
-            }
             Spacer()
-            Text("Page \(canvas.doc.curPage + 1)/\(canvas.doc.pages.count)")
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundColor(.secondary)
-        }
-    }
-
-    private var topToolbar: some View {
-        HStack(spacing: 12) {
-            Button { showHelp = true } label: {
-                Image(systemName: "questionmark.circle")
-            }
             Button { showDocumentPicker = true } label: {
                 Image(systemName: "folder")
             }
@@ -109,7 +92,13 @@ struct EditorView: View {
                 Image(systemName: "square.and.arrow.down")
             }
             .fileExporter(isPresented: $showExportPicker, document: PlainTextDocument(text: canvas.doc.fullText()), contentType: .plainText) { _ in }
+            Button { withAnimation { toolbarVisible.toggle() } } label: {
+                Image(systemName: "chevron.down")
+            }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
     }
 
     private var toastOverlay: some View {
@@ -251,57 +240,5 @@ struct CanvasRepresentable: UIViewRepresentable {
         uiView.onTextChange = onTextChange
         uiView.updateFromSettings()
         uiView.setNeedsDisplay()
-    }
-}
-
-struct SoftKeyboardRepresentable: UIViewRepresentable {
-    var theme: PaperTheme
-    var canvasView: CanvasView
-
-    func makeUIView(context: Context) -> SoftKeyboardView {
-        let kb = SoftKeyboardView(initialTheme: theme)
-        kb.delegate = context.coordinator
-        return kb
-    }
-
-    func updateUIView(_ uiView: SoftKeyboardView, context: Context) {
-        uiView.theme = theme
-        uiView.setNeedsDisplay()
-        context.coordinator.canvasView = canvasView
-    }
-
-    func makeCoordinator() -> KeyboardCoordinator {
-        KeyboardCoordinator(canvasView: canvasView)
-    }
-}
-
-class KeyboardCoordinator: NSObject, SoftKeyboardDelegate {
-    var canvasView: CanvasView
-
-    init(canvasView: CanvasView) {
-        self.canvasView = canvasView
-    }
-
-    func softKeyboard(_ keyboard: SoftKeyboardView, didPress character: Character) {
-        canvasView.insertCharacter(character)
-    }
-
-    func softKeyboardDidPressBackspace(_ keyboard: SoftKeyboardView) {
-        canvasView.handleBackspaceFromKeyboard()
-    }
-
-    func softKeyboardDidPressReturn(_ keyboard: SoftKeyboardView) {
-        canvasView.handleReturnFromKeyboard()
-    }
-
-    func softKeyboardDidPressTab(_ keyboard: SoftKeyboardView) {
-        canvasView.insertCharacter("\t")
-    }
-
-    func softKeyboardDidPressDelete(_ keyboard: SoftKeyboardView) {
-        canvasView.handleDeleteFromKeyboard()
-    }
-
-    func softKeyboardDidToggleShift(_ keyboard: SoftKeyboardView, shifted: Bool) {
     }
 }

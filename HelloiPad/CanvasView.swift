@@ -168,6 +168,19 @@ class CanvasView: UIView {
         CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
     }
 
+    // UIKeyInput — enables system keyboard when no hardware KB
+    var hasText: Bool { true }
+
+    func insertText(_ text: String) {
+        for c in text {
+            insertCharacter(c)
+        }
+    }
+
+    func deleteBackward() {
+        handleBackspace()
+    }
+
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         guard let key = presses.first?.key else { return }
         handleKey(key)
@@ -245,6 +258,7 @@ switch key.keyCode {
     }
 
     private func handleBackspace() {
+        soundManager.playDelete(for: fontIndex)
         doc.backspace()
         resetCursorBlink()
         onTextChange?()
@@ -252,6 +266,7 @@ switch key.keyCode {
     }
 
     private func handleDelete() {
+        soundManager.playDelete(for: fontIndex)
         doc.delete()
         resetCursorBlink()
         onTextChange?()

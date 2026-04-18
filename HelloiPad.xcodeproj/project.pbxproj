@@ -20,7 +20,7 @@
 		B10000000000000000000007 /* HelpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* HelpOverlay.swift */; };
 		B10000000000000000000008 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* Fonts */; };
 		B10000000000000000000009 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* Sounds */; };
-		B10000000000000000000010 /* SoftKeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000010 /* SoftKeyboardView.swift */; };
+		
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,7 +38,7 @@
 		B20000000000000000000007 /* HelpOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpOverlay.swift; sourceTree = "<group>"; };
 		B20000000000000000000008 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fonts; sourceTree = "<group>"; };
 		B20000000000000000000009 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sounds; sourceTree = "<group>"; };
-		B20000000000000000000010 /* SoftKeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftKeyboardView.swift; sourceTree = "<group>"; };
+		
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,7 +76,7 @@
 				B20000000000000000000007 /* HelpOverlay.swift */,
 				B20000000000000000000008 /* Fonts */,
 				B20000000000000000000009 /* Sounds */,
-				B20000000000000000000010 /* SoftKeyboardView.swift */,
+				
 			);
 			path = HelloiPad;
 			sourceTree = "<group>";
@@ -170,7 +170,7 @@
 				B10000000000000000000005 /* SoundManager.swift in Sources */,
 				B10000000000000000000006 /* SettingsStore.swift in Sources */,
 				B10000000000000000000007 /* HelpOverlay.swift in Sources */,
-				B10000000000000000000010 /* SoftKeyboardView.swift in Sources */,
+				
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -303,7 +303,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
@@ -318,7 +318,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.HelloiPad;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.HelloiPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -336,7 +336,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
@@ -351,7 +351,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.HelloiPad;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.HelloiPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
