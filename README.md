@@ -1,13 +1,13 @@
-# Typewrite for iPad
+# Typewrite Apple Edition
 
-A distraction-free, typewriter-style writing environment for iPad, ported from the [typewrite_os](https://github.com/HackerComputerCompany/typewrite_os) X11 application.
+A distraction-free, typewriter-style writing environment for **iPad and macOS**, ported from the [typewrite_os](https://github.com/HackerComputerCompany/typewrite_os) X11 application.
 
 Like the original, this is a **game-style** app — no UITextView, no platform text widgets. Text is rendered character-by-character into a fixed-width grid using Core Graphics and Core Text, with hardware keyboard input via `pressesBegan` and software keyboard via `UIKeyInput`. The same fonts, sounds, and character grid model are preserved from the X11 version.
 
 ## How It Works
 
 - **CanvasView** is a custom `UIView` that draws characters into a grid each frame using `draw(_ rect:)`. It maintains a `TwDoc` character grid (multi-page fixed-width array) and renders it like a game framebuffer.
-- **Sound effects** are per-font WAV files. Delete/backspace plays the key sound **in reverse** (PCM data flipped) for a distinct delete feel.
+- **Sound effects** are per-font WAV files for typing. Delete/backspace picks a **random** key-like sample, plays it **in reverse** (PCM flipped), and **reuses** that sample until **10 seconds** after the last delete so a burst of backspace does not constantly change timbre.
 - **Autosave** writes the document text on every keystroke (1s debounce) and immediately on background, using `ReferenceFileDocument`.
 - **Settings** persist via `UserDefaults` and sync to `CanvasView` on every SwiftUI state change.
 - **Typewriter view** anchors the cursor to the bottom row, scrolling content upward — exactly like a real typewriter.
@@ -19,13 +19,14 @@ Like the original, this is a **game-style** app — no UITextView, no platform t
 | `CanvasView.swift` | Custom UIView renderer, keyboard input, cursor, draw loop |
 | `DocumentModel.swift` | `TwCore` + `TwDoc` character grid model |
 | `FontRegistry.swift` | Font loading, CTFontManager registration, cell metrics |
-| `SoundManager.swift` | Key/carriage/bell WAV playback per font; reversed for delete |
+| `SoundManager.swift` | Key/carriage/bell per font; delete = random reversed key sample (10s idle before new random) |
 | `PaperTheme.swift` | 10 background/ink colour schemes |
 | `EditorView.swift` | Main SwiftUI view: toolbar, autosave, toast, help, file I/O |
 | `SettingsStore.swift` | UserDefaults-backed settings |
 | `PlainTextDocument.swift` | ReferenceFileDocument for .txt autosave |
 | `HelpOverlay.swift` | Keyboard shortcuts overlay |
-| `HelloiPadApp.swift` | App entry point (DocumentGroup) |
+| `TypewriteAppleEditionApp.swift` | iOS app entry (DocumentGroup) |
+| `typewrite_apple_edition_macOS/TypewriteAppleEditionMacApp.swift` | macOS app entry (DocumentGroup) |
 
 ## Fonts
 
@@ -49,8 +50,8 @@ Hardware keyboard required for best experience. The iOS system keyboard also wor
 |---|---|
 | Printable ASCII | Type character |
 | Enter / Return | New line (carriage sound on typewriter fonts) |
-| Backspace | Delete backward (reversed key sound) |
-| Delete | Delete forward (reversed key sound) |
+| Backspace | Delete backward (random reversed key sound; same sample until 10s idle) |
+| Delete | Delete forward (same delete sound behaviour as backspace) |
 | Arrow keys | Move cursor |
 | Home / End | Line start / end |
 | Page Up / Down | Previous / next page |
@@ -59,6 +60,8 @@ Hardware keyboard required for best experience. The iOS system keyboard also wor
 
 ## Building
 
-Open `HelloiPad.xcodeproj` in Xcode 16+, select iPad simulator or device, build & run.
+From the **`typewrite_apple_edition`** repository directory, open `typewrite_apple_edition.xcodeproj` in Xcode 16+. Use the **typewrite_apple_edition** scheme for iPad (simulator or device) or **typewrite_apple_edition_macOS** for Mac, then build and run.
 
-Requires iPadOS 17.0+ and an external hardware keyboard for the full experience. The software keyboard also works for basic text entry.
+Requires iPadOS 17.0+ (iPad target) or macOS 14.0+ (Mac target). A hardware keyboard is recommended on iPad; the software keyboard also works for basic text entry.
+
+Because the bundle identifiers changed, open **Signing & Capabilities** in Xcode once per target so automatic signing can register the new IDs with your Apple Developer team.

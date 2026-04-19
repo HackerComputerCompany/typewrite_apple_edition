@@ -1,4 +1,4 @@
-# PLAN — Typewrite for iPad
+# PLAN — Typewrite Apple Edition (iPad + macOS)
 
 ## Phase 1: Foundation (Complete)
 - [x] Game-style custom UIView renderer (`CanvasView`) — no UITextView
@@ -10,7 +10,7 @@
 - [x] Typewriter bottom-anchored view (F8 equivalent)
 - [x] Page margins mode (F6 equivalent)
 - [x] Sound effects per-font keyclick, carriage, bell (`SoundManager`)
-- [x] Delete sounds: key sounds played in reverse (PCM data flipped)
+- [x] Delete sounds: random key sample from pool, reversed (PCM); new pick after 10s idle (`SoundManager`)
 - [x] Settings persistence (`SettingsStore` / UserDefaults)
 - [x] Help overlay with keyboard shortcuts
 - [x] .txt file open/export via `ReferenceFileDocument`
@@ -23,11 +23,11 @@
 - [ ] Typing pace tracking (WPM, session word count) — status toast
 - [ ] PDF export (render grid pages to CGContext, write PDF)
 - [ ] Cursor cross-page navigation with smooth scroll
-- [ ] Line number gutter modes (ascending/descending) — rendering works, need UI toggle
-- [ ] Columns-per-line cycling (50→65 in margins mode) — settings work
-- [ ] Word wrap soft-wrap logic in `TwDoc`
+- [x] Line number gutter modes (ascending/descending) — toolbar / settings cycle + render
+- [x] Columns-per-line cycling (50→65 in margins mode) — toolbar + `SettingsStore`
+- [x] Word wrap soft-wrap logic in `TwDoc` (`wordWrap`, `trySoftWrap`)
 - [ ] Insert mode line-join on backspace at col 0
-- [ ] Resize reflow (recalculate grid on rotation)
+- [x] Resize reflow — `layoutSubviews` / `setFrameSize` → `recalcLayout()` + `doc.resize` when grid changes
 - [ ] On-screen minimal toolbar for users without hardware keyboard
 
 ## Phase 3: Polish
@@ -44,9 +44,9 @@
 | `tw_core.c` | `DocumentModel.swift` TwCore | Direct port |
 | `tw_doc.c` | `DocumentModel.swift` TwDoc | Direct port, insert/soft-wrap not yet |
 | `tw_bitmapfont_uefi.c` | `FontRegistry.swift` | Replaced bitmap blit with Core Text |
-| `tw_sound.c` | `SoundManager.swift` | SDL2 → AVAudioPlayer, NSCache pool, reversed delete sounds |
+| `tw_sound.c` | `SoundManager.swift` | SDL2 → AVAudioPlayer, NSCache pool; delete = random key WAV reversed, 10s idle session |
 | `tw_x11_settings.c` | `SettingsStore.swift` | JSON file → UserDefaults |
-| `main_x11.c` render() | `CanvasView.swift` draw() | XPutImage → Core Graphics |
+| `main_x11.c` render() | `CanvasView.swift` / `CanvasNSView.swift` draw() | XPutImage → Core Graphics |
 | `main_x11.c` key handler | `CanvasView.swift` pressesBegan | XLookupKeysym → UIKey.keyCode + UIKeyInput |
 | `main_x11.c` ToastState | `EditorView.swift` toastOverlay | Status bar toast |
 | — | `PlainTextDocument.swift` | ReferenceFileDocument for autosave |

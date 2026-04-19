@@ -1,39 +1,53 @@
-# AGENTS.md — Typewrite for iPad
+# AGENTS.md — Typewrite Apple Edition
 
 ## Purpose
 
-iPad port of [typewrite_os](https://github.com/HackerComputerCompany/typewrite_os) (specifically the X11 app). A distraction-free, typewriter-style writing environment. Game-style rendering: no UITextView — custom UIView blits characters into a grid, hardware keyboard only.
+Native **iPad + macOS** port of [typewrite_os](https://github.com/HackerComputerCompany/typewrite_os) (X11 app). Distraction-free, typewriter-style writing. Game-style rendering on iPad: no `UITextView` — custom `UIView` draws a character grid; macOS uses `CanvasNSView` (`NSView`) with the same model and shared Swift sources.
 
 ## Key Files
 
 | Path | What |
 |---|---|
-| `HelloiPad/CanvasView.swift` | Core renderer + keyboard input handler + cursor blink + draw loop |
-| `HelloiPad/DocumentModel.swift` | `TwCore` + `TwDoc` character grid model (port of tw_core.c/tw_doc.c) |
-| `HelloiPad/FontRegistry.swift` | Font loading, registration, cell metrics computation |
-| `HelloiPad/SoundManager.swift` | Key/carriage/bell WAV playback per font; reversed playback for delete |
-| `HelloiPad/PaperTheme.swift` | 10 background/ink colour schemes |
-| `HelloiPad/EditorView.swift` | Main SwiftUI shell: toolbar, autosave, toast, help, file I/O |
-| `HelloiPad/SettingsStore.swift` | UserDefaults-backed settings (font, theme, cursor, margins, etc.) |
-| `HelloiPad/PlainTextDocument.swift` | ReferenceFileDocument for .txt — autosave via debounce + background |
-| `HelloiPad/HelpOverlay.swift` | Keyboard shortcuts overlay |
-| `HelloiPad/HelloiPadApp.swift` | App entry point (DocumentGroup + ReferenceFileDocument) |
+| `typewrite_apple_edition/CanvasView.swift` | Core iOS renderer + keyboard + cursor blink + draw loop |
+| `typewrite_apple_edition_macOS/CanvasNSView.swift` | AppKit renderer + keyboard (shared model with iPad) |
+| `typewrite_apple_edition/DocumentModel.swift` | `TwCore` + `TwDoc` character grid model (port of tw_core.c/tw_doc.c) |
+| `typewrite_apple_edition/FontRegistry.swift` | Font loading, registration, cell metrics computation |
+| `typewrite_apple_edition/SoundManager.swift` | Key/carriage/bell WAV per font; delete = random key WAV reversed, same pick until 10s after last delete |
+| `typewrite_apple_edition/PaperTheme.swift` | 10 background/ink colour schemes |
+| `typewrite_apple_edition/EditorView.swift` | Main SwiftUI shell: toolbar, autosave, toast, help, file I/O |
+| `typewrite_apple_edition/SettingsStore.swift` | UserDefaults-backed settings (font, theme, cursor, margins, etc.) |
+| `typewrite_apple_edition/PlainTextDocument.swift` | ReferenceFileDocument for .txt — autosave via debounce + background |
+| `typewrite_apple_edition/HelpOverlay.swift` | Keyboard shortcuts overlay |
+| `typewrite_apple_edition/TypewriteAppleEditionApp.swift` | iOS `@main` entry (DocumentGroup + ReferenceFileDocument) |
+| `typewrite_apple_edition_macOS/TypewriteAppleEditionMacApp.swift` | macOS `@main` entry |
 
 ## Build
 
+The repository root folder is **`typewrite_apple_edition`** (same basename as `typewrite_apple_edition.xcodeproj`). Open that `.xcodeproj` in Xcode from this directory.
+
+iPad (example simulator):
+
 ```
-xcodebuild -project HelloiPad.xcodeproj -scheme HelloiPad -destination 'platform=iOS Simulator,name=iPad (A16)' build
+xcodebuild -project typewrite_apple_edition.xcodeproj -scheme typewrite_apple_edition -destination 'platform=iOS Simulator,name=iPad (A16)' build
 ```
 
-Or open in Xcode 16+ and Cmd+R.
+macOS:
+
+```
+xcodebuild -project typewrite_apple_edition.xcodeproj -scheme typewrite_apple_edition_macOS -destination 'platform=macOS' build
+```
+
+Or open `typewrite_apple_edition.xcodeproj` in Xcode 16+ and Cmd+R.
+
+**Signing:** Bundle IDs were renamed to `com.hackercomputercompany.typewrite.apple.edition` (iOS) and `…typewrite.apple.edition.macOS` (Mac). After pulling this change, open the project in Xcode, select each target, and confirm **Signing & Capabilities** resolves automatic signing (Xcode may prompt to register the new identifiers with your team).
 
 ## Architecture
 
 ```
-HelloiPadApp (DocumentGroup)
+TypewriteAppleEditionApp / TypewriteAppleEditionMacApp (DocumentGroup)
   └─ EditorView (SwiftUI)
-       ├─ CanvasRepresentable (UIViewRepresentable bridge)
-       │    └─ CanvasView (UIView — game-style renderer)
+       ├─ CanvasRepresentable
+       │    └─ CanvasView (iOS) or CanvasNSView (macOS)
        │         ├─ TwDoc / TwCore (character grid model)
        │         ├─ FontRegistry (8 TTF + system mono)
        │         ├─ SoundManager (WAV playback, reversed for delete)
@@ -53,8 +67,9 @@ HelloiPadApp (DocumentGroup)
 | `tw_core.c` / `tw_doc.c` | `TwCore` + `TwDoc` in `DocumentModel.swift` |
 | `tw_sound.c` (SDL2) | `SoundManager` (AVAudioPlayer, NSCache pool) |
 | `tw_x11_settings.c` (JSON file) | `SettingsStore` (UserDefaults) |
-| `mono_ms()` timer for cursor blink | `CADisplayLink` via `DisplayLinkProxy` |
-| `typewriter_buf_row_for_sy()` | `typewriterBufferRow(for:)` in `CanvasView` |
+| `mono_ms()` timer for cursor blink | `CADisplayLink` (iOS); `Timer` on main run loop (macOS `CanvasNSView`) |
+| `typewriter_buf_row_for_sy()` | `typewriterBufferRow(for:cursorY:viewRows:)` in `CanvasView` / `CanvasNSView` |
+| `compute_view_layout()` (Letter margins, full width) | `recalcLayout()` in `CanvasView` / `CanvasNSView` |
 | Page margins (F6) | `pageMargins` in `SettingsStore` |
 | Typewriter view (F8) | `typewriterView` in `SettingsStore` |
 | Background cycle (F4) | `PaperTheme` enum (10 colours) |
@@ -62,9 +77,9 @@ HelloiPadApp (DocumentGroup)
 
 ## Conventions
 
-- No UITextView, no UITextViewDelegate — all rendering is game-style
+- No UITextView, no UITextViewDelegate — iOS rendering is game-style
 - Hardware keyboard input via `pressesBegan`; software keyboard via `UIKeyInput`
 - Sound effects are WAV files bundled in `Sounds/` directory
 - Fonts are TTF files bundled in `Fonts/` directory, registered at runtime with Core Text
-- Delete sounds are the key sounds played in reverse (PCM data reversed in WAV chunk)
+- Delete/backspace: random key-like WAV (excluding carriage/bell), reversed; new random after 10s without a delete
 - Autosave: `EditorView.saveNow()` writes `canvas.doc.fullText()` to `document.text`, debounced 1s after keystroke, immediate on background
