@@ -1,9 +1,9 @@
 // SoundManager.swift
 //
 // Loads and plays WAV sound effects, one per font category. Key sounds
-// are chosen by font index. Delete/backspace sounds are the same WAV files
-// but with the PCM audio data reversed (frames flipped in the data chunk),
-// giving a "reverse keystroke" effect that distinguishes delete from insert.
+// are chosen by font index. Delete/backspace picks a random loaded key sound
+// (reversed PCM like before), reuses that pick until 10s after the last delete
+// so rapid backspace is not a new sample every stroke.
 //
 // Sound-pool pattern: rather than allocating a new AVAudioPlayer per keystroke
 // (which causes stuttering at high typing speeds), we use NSCache as a
@@ -18,6 +18,18 @@ class SoundManager {
     private var players: [String: AVAudioPlayer] = [:]
     private let playerPool = NSCache<NSString, AVAudioPlayer>()
     private var reversedDataCache: [String: Data] = [:]
+
+    /// After this much time without a delete, the next delete picks a new random sound.
+    private static let deleteSoundSessionIdleSeconds: CFTimeInterval = 10
+
+    /// Key-like samples only (carriage/bell are enter/bell SFX, not for backspace).
+    private static let deleteRandomPool: [SoundName] = SoundName.allCases.filter {
+        $0 != .typewriterCarriage && $0 != .typewriterBell
+    }
+
+    private var deleteSessionSound: SoundName?
+    /// Sliding idle: session expires this many seconds after the last `playDelete`.
+    private var deleteSessionValidUntil: CFTimeInterval = 0
 
     enum SoundName: String, CaseIterable {
         case virgilPencil = "virgil_pencil"
@@ -71,18 +83,15 @@ class SoundManager {
         playPooled(name)
     }
 
-    func playDelete(for fontIndex: Int) {
-        let name: SoundName
-        switch fontIndex {
-        case 0: name = .virgilPencil
-        case 1: name = .uiTap
-        case 2, 3: name = .typewriterKey
-        case 4, 5: name = .terminalBlip
-        case 6: name = .ibmKeyboard
-        case 7: name = .arcadeBlip
-        default: name = .simpleBlip
+    func playDelete(for _: Int) {
+        let now = CACurrentMediaTime()
+        if deleteSessionSound == nil || now >= deleteSessionValidUntil {
+            deleteSessionSound = Self.deleteRandomPool.randomElement() ?? .typewriterKey
         }
-        playPooledReversed(name)
+        deleteSessionValidUntil = now + Self.deleteSoundSessionIdleSeconds
+        if let name = deleteSessionSound {
+            playPooledReversed(name)
+        }
     }
 
     func playCarriage(for fontIndex: Int) {
@@ -96,6 +105,7 @@ class SoundManager {
     }
 
     private func playPooled(_ name: SoundName) {
+        guard SettingsStore.shared.soundEnabled else { return }
         guard let base = players[name.rawValue] else { return }
         guard let url = base.url else { return }
         if let player = try? AVAudioPlayer(contentsOf: url) {
@@ -106,6 +116,7 @@ class SoundManager {
     }
 
     private func playPooledReversed(_ name: SoundName) {
+        guard SettingsStore.shared.soundEnabled else { return }
         guard let base = players[name.rawValue] else { return }
         guard let url = base.url else { return }
 

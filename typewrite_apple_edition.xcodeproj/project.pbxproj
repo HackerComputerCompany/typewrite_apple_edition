@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10000000000000000000001 /* HelloiPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* HelloiPadApp.swift */; };
+		A10000000000000000000001 /* TypewriteAppleEditionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* TypewriteAppleEditionApp.swift */; };
 		A10000000000000000000002 /* PlainTextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* PlainTextDocument.swift */; };
 		A10000000000000000000003 /* PaperTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* PaperTheme.swift */; };
 		A10000000000000000000005 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* EditorView.swift */; };
@@ -20,16 +20,28 @@
 		B10000000000000000000007 /* HelpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* HelpOverlay.swift */; };
 		B10000000000000000000008 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* Fonts */; };
 		B10000000000000000000009 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* Sounds */; };
-		
+		C10000000000000000000010 /* TypewriteAppleEditionMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000010 /* TypewriteAppleEditionMacApp.swift */; };
+		C10000000000000000000011 /* CanvasNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000011 /* CanvasNSView.swift */; };
+		C10000000000000000000012 /* PlainTextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* PlainTextDocument.swift */; };
+		C10000000000000000000013 /* PaperTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* PaperTheme.swift */; };
+		C10000000000000000000014 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* EditorView.swift */; };
+		C10000000000000000000015 /* DocumentModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* DocumentModel.swift */; };
+		C10000000000000000000016 /* FontRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* FontRegistry.swift */; };
+		C10000000000000000000017 /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* SoundManager.swift */; };
+		C10000000000000000000018 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* SettingsStore.swift */; };
+		C10000000000000000000019 /* HelpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* HelpOverlay.swift */; };
+		C10000000000000000000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* Assets.xcassets */; };
+		C10000000000000000000021 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* Fonts */; };
+		C10000000000000000000022 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* Sounds */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A20000000000000000000001 /* HelloiPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloiPadApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000001 /* TypewriteAppleEditionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriteAppleEditionApp.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* PlainTextDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlainTextDocument.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* PaperTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperTheme.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A30000000000000000000001 /* HelloiPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HelloiPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000000000000000000001 /* typewrite_apple_edition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = typewrite_apple_edition.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000001 /* CanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasView.swift; sourceTree = "<group>"; };
 		B20000000000000000000003 /* DocumentModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentModel.swift; sourceTree = "<group>"; };
 		B20000000000000000000004 /* FontRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistry.swift; sourceTree = "<group>"; };
@@ -38,11 +50,20 @@
 		B20000000000000000000007 /* HelpOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpOverlay.swift; sourceTree = "<group>"; };
 		B20000000000000000000008 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fonts; sourceTree = "<group>"; };
 		B20000000000000000000009 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sounds; sourceTree = "<group>"; };
-		
+		C20000000000000000000010 /* TypewriteAppleEditionMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriteAppleEditionMacApp.swift; sourceTree = "<group>"; };
+		C20000000000000000000011 /* CanvasNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasNSView.swift; sourceTree = "<group>"; };
+		C30000000000000000000002 /* typewrite_apple_edition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = typewrite_apple_edition.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A40000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C40000000000000000000002 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -55,15 +76,16 @@
 		A50000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				A50000000000000000000002 /* HelloiPad */,
+				A50000000000000000000002 /* typewrite_apple_edition */,
+				C50000000000000000000004 /* typewrite_apple_edition_macOS */,
 				A50000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		A50000000000000000000002 /* HelloiPad */ = {
+		A50000000000000000000002 /* typewrite_apple_edition */ = {
 			isa = PBXGroup;
 			children = (
-				A20000000000000000000001 /* HelloiPadApp.swift */,
+				A20000000000000000000001 /* TypewriteAppleEditionApp.swift */,
 				A20000000000000000000002 /* PlainTextDocument.swift */,
 				A20000000000000000000003 /* PaperTheme.swift */,
 				A20000000000000000000005 /* EditorView.swift */,
@@ -76,25 +98,34 @@
 				B20000000000000000000007 /* HelpOverlay.swift */,
 				B20000000000000000000008 /* Fonts */,
 				B20000000000000000000009 /* Sounds */,
-				
 			);
-			path = HelloiPad;
+			path = typewrite_apple_edition;
 			sourceTree = "<group>";
 		};
 		A50000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A30000000000000000000001 /* HelloiPad.app */,
+				A30000000000000000000001 /* typewrite_apple_edition.app */,
+				C30000000000000000000002 /* typewrite_apple_edition.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C50000000000000000000004 /* typewrite_apple_edition_macOS */ = {
+			isa = PBXGroup;
+			children = (
+				C20000000000000000000010 /* TypewriteAppleEditionMacApp.swift */,
+				C20000000000000000000011 /* CanvasNSView.swift */,
+			);
+			path = typewrite_apple_edition_macOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A60000000000000000000001 /* HelloiPad */ = {
+		A60000000000000000000001 /* typewrite_apple_edition */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "HelloiPad" */;
+			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "typewrite_apple_edition" */;
 			buildPhases = (
 				A60000000000000000000002 /* Sources */,
 				A40000000000000000000001 /* Frameworks */,
@@ -104,9 +135,26 @@
 			);
 			dependencies = (
 			);
-			name = HelloiPad;
-			productName = HelloiPad;
-			productReference = A30000000000000000000001 /* HelloiPad.app */;
+			name = typewrite_apple_edition;
+			productName = typewrite_apple_edition;
+			productReference = A30000000000000000000001 /* typewrite_apple_edition.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C60000000000000000000002 /* typewrite_apple_edition_macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C70000000000000000000005 /* Build configuration list for PBXNativeTarget "typewrite_apple_edition_macOS" */;
+			buildPhases = (
+				C61000000000000000000001 /* Sources */,
+				C40000000000000000000002 /* Frameworks */,
+				C61000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = typewrite_apple_edition_macOS;
+			productName = typewrite_apple_edition;
+			productReference = C30000000000000000000002 /* typewrite_apple_edition.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -122,9 +170,12 @@
 					A60000000000000000000001 = {
 						CreatedOnToolsVersion = 16.2;
 					};
+					C60000000000000000000002 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 				};
 			};
-			buildConfigurationList = A70000000000000000000001 /* Build configuration list for PBXProject "HelloiPad" */;
+			buildConfigurationList = A70000000000000000000001 /* Build configuration list for PBXProject "typewrite_apple_edition" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -137,7 +188,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A60000000000000000000001 /* HelloiPad */,
+				A60000000000000000000001 /* typewrite_apple_edition */,
+				C60000000000000000000002 /* typewrite_apple_edition_macOS */,
 			);
 		};
 /* End PBXProject section */
@@ -153,6 +205,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C61000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C10000000000000000000020 /* Assets.xcassets in Resources */,
+				C10000000000000000000021 /* Fonts in Resources */,
+				C10000000000000000000022 /* Sounds in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -160,7 +222,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000001 /* HelloiPadApp.swift in Sources */,
+				A10000000000000000000001 /* TypewriteAppleEditionApp.swift in Sources */,
 				A10000000000000000000002 /* PlainTextDocument.swift in Sources */,
 				A10000000000000000000003 /* PaperTheme.swift in Sources */,
 				A10000000000000000000005 /* EditorView.swift in Sources */,
@@ -170,7 +232,23 @@
 				B10000000000000000000005 /* SoundManager.swift in Sources */,
 				B10000000000000000000006 /* SettingsStore.swift in Sources */,
 				B10000000000000000000007 /* HelpOverlay.swift in Sources */,
-				
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C61000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C10000000000000000000010 /* TypewriteAppleEditionMacApp.swift in Sources */,
+				C10000000000000000000011 /* CanvasNSView.swift in Sources */,
+				C10000000000000000000012 /* PlainTextDocument.swift in Sources */,
+				C10000000000000000000013 /* PaperTheme.swift in Sources */,
+				C10000000000000000000014 /* EditorView.swift in Sources */,
+				C10000000000000000000015 /* DocumentModel.swift in Sources */,
+				C10000000000000000000016 /* FontRegistry.swift in Sources */,
+				C10000000000000000000017 /* SoundManager.swift in Sources */,
+				C10000000000000000000018 /* SettingsStore.swift in Sources */,
+				C10000000000000000000019 /* HelpOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,6 +308,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -287,6 +366,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -306,7 +386,7 @@
 				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
+				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -318,8 +398,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.HelloiPad;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition;
+				PRODUCT_NAME = typewrite_apple_edition;
+				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -339,7 +420,7 @@
 				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
+				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -351,8 +432,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.HelloiPad;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition;
+				PRODUCT_NAME = typewrite_apple_edition;
+				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -362,10 +444,64 @@
 			};
 			name = Release;
 		};
+		A90000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FX5JML3WC4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition.macOS;
+				PRODUCT_NAME = typewrite_apple_edition;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A90000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FX5JML3WC4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition.macOS;
+				PRODUCT_NAME = typewrite_apple_edition;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A70000000000000000000001 /* Build configuration list for PBXProject "HelloiPad" */ = {
+		A70000000000000000000001 /* Build configuration list for PBXProject "typewrite_apple_edition" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A90000000000000000000001 /* Debug */,
@@ -374,11 +510,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A70000000000000000000003 /* Build configuration list for PBXNativeTarget "HelloiPad" */ = {
+		A70000000000000000000003 /* Build configuration list for PBXNativeTarget "typewrite_apple_edition" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A90000000000000000000003 /* Debug */,
 				A90000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C70000000000000000000005 /* Build configuration list for PBXNativeTarget "typewrite_apple_edition_macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A90000000000000000000005 /* Debug */,
+				A90000000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

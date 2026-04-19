@@ -9,11 +9,12 @@
 //
 // Rendering pipeline (called every frame via CADisplayLink):
 //   1. Fill background (paper or surround color based on margins mode)
-//   2. If typewriter view: blank everything above cursor row
-//   3. drawCells() — iterate grid rows, blit each character via NSAttributedString
-//   4. drawCursor() — draw block or bar cursor at current position
-//   5. drawTypewriterRule() — red horizontal line below current row
-//   6. drawPageFooter() — "Page N of M" below the paper area
+//   2. If page margins + typewriter: surround strip above text_y0 (X11 parity)
+//   3. drawCells() — per-row map via typewriterBufferRow; br<0 rows get outer fill
+//   4. If page margins + typewriter: floating top-margin paper band (X11 parity)
+//   5. drawCursor() — draw block or bar cursor at current position
+//   6. drawTypewriterRule() — red horizontal line below current row
+//   7. drawPageFooter() — "Page N of M" below the paper area
 //
 // The document model (TwDoc/TwCore) is a multi-page character grid that
 // mirrors the X11 tw_core.c / tw_doc.c architecture. See DocumentModel.swift.
@@ -23,7 +24,7 @@
 //   XLookupKeysym            → pressesBegan(_:with:) + UIKeyInput
 //   tw_bitmapfont glyph blit → Core Text NSAttributedString.draw()
 //   mono_ms() cursor timer   → CADisplayLink (via DisplayLinkProxy)
-//   typewriter_buf_row_for_sy → typewriterBufferRow(for:)
+//   typewriter_buf_row_for_sy → typewriterBufferRow(for:cursorY:viewRows:)
 //
 // See AGENTS.md for the full translation map.
 
@@ -46,6 +47,12 @@ class CanvasView: UIView {
     /// Called after every character insertion, deletion, or cursor movement
     /// to trigger autosave debounce in EditorView.
     var onTextChange: (() -> Void)?
+
+    /// Printable / tab / newline for session stats and periodic status toasts (X11 typing units).
+    var onTypingSessionInput: ((TypingSessionInput) -> Void)?
+
+    var onStatusPulseShortcut: (() -> Void)?
+    var onToggleSoundsShortcut: (() -> Void)?
 
     /// Called when page count or cursor page changes (unused currently).
     var onDocInfoUpdate: ((Int, Int) -> Void)?
@@ -163,13 +170,47 @@ class CanvasView: UIView {
         doc.insertMode = insertMode
         doc.wordWrap = settings.wordWrap
         recalcLayout()
+        applyCanvasOpacityForMarginsMode()
         setNeedsDisplay()
     }
 
     // MARK: - Layout calculation
 
+    /// Line-number gutter width; mirrors X11 `compute_view_layout` gutter rules.
+    private func lineNumberGutterWidth(cellW: CGFloat) -> CGFloat {
+        switch gutterMode {
+        case .off:
+            return 0
+        case .ascending, .descending:
+            var g = cellW * 4 + 12
+            if g < cellW * 5 { g = cellW * 5 }
+            if g < 28 { g = 28 }
+            return g
+        }
+    }
+
+    /// ~1" Letter inset at 96 dpi, shrunk on small windows (X11 `compute_view_layout`).
+    private func letterMarginPx(boundsW: CGFloat, boundsH: CGFloat, cellW: CGFloat, cellH: CGFloat, gutter: CGFloat) -> CGFloat {
+        guard boundsW > 0, boundsH > 0 else { return 0 }
+        var marginPx: CGFloat = 96
+        if marginPx > boundsW / 6 { marginPx = floor(boundsW / 6) }
+        if marginPx > boundsH / 6 { marginPx = floor(boundsH / 6) }
+        if marginPx < 16 { marginPx = 16 }
+        while marginPx > 0 && (boundsW < 2 * marginPx + gutter + cellW || boundsH < 2 * marginPx + cellH) {
+            marginPx -= 2
+        }
+        if marginPx < 0 { marginPx = 0 }
+        return marginPx
+    }
+
+    private func applyCanvasOpacityForMarginsMode() {
+        // Full-bleed mode leaves a transparent ring around the paper (see `draw`).
+        isOpaque = pageMargins
+    }
+
     /// Calculates the ViewLayout struct based on current bounds, font metrics,
     /// and settings. If the document grid dimensions changed, resizes TwDoc.
+    /// Letter margins match X11: the paper rect includes ~1" margins; text starts inset.
     func recalcLayout() {
         let twFont = fontRegistry.font(at: fontIndex)
         let cellW = twFont.cellWidth
@@ -179,47 +220,82 @@ class CanvasView: UIView {
         let boundsH = bounds.height
         guard boundsW > 0, boundsH > 0 else { return }
 
-        let margin: CGFloat = pageMargins ? 96 : 0
-        let gutter: CGFloat
-        switch gutterMode {
-        case .off: gutter = 0
-        case .ascending, .descending: gutter = cellW * 5
-        }
+        let gutter = lineNumberGutterWidth(cellW: cellW)
 
-        let availW = boundsW - margin * 2 - gutter
-        let availH = boundsH - (pageMargins ? 20 : 0) * 2
-
-        // Column count: constrained by settings when margins are on
+        let paperX: CGFloat
+        let paperY: CGFloat
+        let paperW: CGFloat
+        let paperH: CGFloat
+        let textX0: CGFloat
+        let textY0: CGFloat
+        let marginLeft: CGFloat
+        let marginRight: CGFloat
+        let marginTop: CGFloat
+        let marginBottom: CGFloat
         let targetCols: Int
-        if pageMargins {
-            targetCols = min(colsMargined, Int(availW / cellW))
-        } else {
-            targetCols = min(80, Int(availW / cellW))
-        }
-        let targetRows = max(1, Int(availH / cellH))
+        let targetRows: Int
 
-        let paperW = CGFloat(targetCols) * cellW + gutter
-        let paperH = CGFloat(targetRows) * cellH
-        let paperX = (boundsW - paperW) / 2
-        let paperY = pageMargins ? max(20, (boundsH - paperH) / 2) : 0
+        if pageMargins {
+            let marginPx = letterMarginPx(boundsW: boundsW, boundsH: boundsH, cellW: cellW, cellH: cellH, gutter: gutter)
+            let maxColsFit = max(1, Int((boundsW - 2 * marginPx - gutter) / cellW))
+            targetCols = min(colsMargined, maxColsFit)
+            targetRows = max(1, Int((boundsH - 2 * marginPx) / cellH))
+
+            paperW = 2 * marginPx + gutter + CGFloat(targetCols) * cellW
+            paperH = 2 * marginPx + CGFloat(targetRows) * cellH
+            paperX = (boundsW > paperW) ? (boundsW - paperW) / 2 : 0
+            paperY = (boundsH > paperH) ? (boundsH - paperH) / 2 : 0
+            textX0 = paperX + marginPx + gutter
+            textY0 = paperY + marginPx
+            marginLeft = marginPx
+            marginRight = marginPx
+            marginTop = marginPx
+            marginBottom = marginPx
+        } else {
+            // Full-bleed: keep a comfortable inset from the display (safe area + floor).
+            let s = safeAreaInsets
+            let minPad: CGFloat = 20
+            let padL = max(minPad, s.left)
+            let padR = max(minPad, s.right)
+            let padT = max(minPad, s.top)
+            let padB = max(minPad, s.bottom)
+            let innerW = boundsW - padL - padR
+            let innerH = boundsH - padT - padB
+
+            let maxCols = min(80, max(1, Int((innerW - gutter) / cellW)))
+            targetCols = maxCols
+            targetRows = max(1, Int(innerH / cellH))
+
+            paperW = gutter + CGFloat(targetCols) * cellW
+            paperH = CGFloat(targetRows) * cellH
+            paperX = padL + max(0, (innerW - paperW) / 2)
+            paperY = padT + max(0, (innerH - paperH) / 2)
+            textX0 = paperX + gutter
+            textY0 = paperY
+            marginLeft = 0
+            marginRight = 0
+            marginTop = 0
+            marginBottom = 0
+        }
 
         layout = ViewLayout(
-            marginLeft: margin,
-            marginRight: margin,
-            marginTop: pageMargins ? 20 : 0,
-            marginBottom: pageMargins ? 20 : 0,
+            marginLeft: marginLeft,
+            marginRight: marginRight,
+            marginTop: marginTop,
+            marginBottom: marginBottom,
             gutterWidth: gutter,
             paperX: paperX,
             paperY: paperY,
             paperW: paperW,
             paperH: paperH,
-            textX0: paperX + gutter,
-            textY0: paperY,
+            textX0: textX0,
+            textY0: textY0,
             cols: targetCols,
             rows: targetRows
         )
 
-        // Resize the document grid if column/row count changed (e.g. rotation)
+        applyCanvasOpacityForMarginsMode()
+
         if doc.cols != targetCols || doc.rows != targetRows {
             doc.resize(cols: targetCols, rows: targetRows)
         }
@@ -230,9 +306,19 @@ class CanvasView: UIView {
         recalcLayout()
     }
 
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        recalcLayout()
+        setNeedsDisplay()
+    }
+
     // MARK: - Keyboard input (hardware keyboard via pressesBegan, software via UIKeyInput)
 
     override var canBecomeFirstResponder: Bool { true }
+
+    func claimFocus() {
+        _ = becomeFirstResponder()
+    }
 
     override var intrinsicContentSize: CGSize {
         CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
@@ -287,6 +373,16 @@ class CanvasView: UIView {
         case let code where code.rawValue == 0x2A: handleBackspace()  // USB HID backspace
         case .keyboardReturn: handleEnter()
         case .keyboardInsert:     toggleInsertMode()
+        case .keyboardF9:
+            onStatusPulseShortcut?()
+            resetCursorBlink()
+            setNeedsDisplay()
+            return
+        case .keyboardF12:
+            onToggleSoundsShortcut?()
+            resetCursorBlink()
+            setNeedsDisplay()
+            return
         default:
             // Catch newline characters that arrive without .keyboardReturn keyCode
             if let c = chars.first {
@@ -317,6 +413,7 @@ class CanvasView: UIView {
     /// For typewriter fonts (indices 2-3), plays a margin bell when
     /// approaching the right edge, just like a real typewriter.
     private func typeCharWithSound(_ c: Character) {
+        onTypingSessionInput?(.printable)
         soundManager.playKey(for: fontIndex)
         if fontIndex == 2 || fontIndex == 3 {
             let p = doc.pages[doc.curPage]
@@ -331,6 +428,7 @@ class CanvasView: UIView {
     }
 
     private func handleEnter() {
+        onTypingSessionInput?(.newline)
         soundManager.playCarriage(for: fontIndex)
         doc.newline()
         resetCursorBlink()
@@ -338,7 +436,7 @@ class CanvasView: UIView {
         setNeedsDisplay()
     }
 
-    /// Backspace: plays the key sound reversed (via SoundManager.playDelete)
+    /// Backspace: plays a random key sound reversed (via SoundManager.playDelete)
     private func handleBackspace() {
         soundManager.playDelete(for: fontIndex)
         doc.backspace()
@@ -398,6 +496,7 @@ class CanvasView: UIView {
 
     /// Inserts 4 spaces with a single key sound (not 4 separate sounds).
     private func tabInsert() {
+        onTypingSessionInput?(.tab)
         for _ in 0..<4 { doc.putc(" ") }
         resetCursorBlink()
         onTextChange?()
@@ -424,24 +523,33 @@ class CanvasView: UIView {
             ctx.setFillColor(theme.paper.cgColor)
             ctx.fill(paperRect)
         } else {
-            ctx.setFillColor(theme.paper.cgColor)
+            // Clear the view so SwiftUI shows through the bezel; paper only in the layout rect.
+            ctx.saveGState()
+            ctx.setBlendMode(.copy)
+            ctx.setFillColor(UIColor.clear.cgColor)
             ctx.fill(bounds)
+            ctx.restoreGState()
+
+            let paperRect = CGRect(x: layout.paperX, y: layout.paperY, width: layout.paperW, height: layout.paperH)
+            ctx.setFillColor(theme.paper.cgColor)
+            ctx.fill(paperRect)
         }
 
-        // Typewriter view: blank everything above the cursor line,
-        // so text appears to scroll up from below (like a real typewriter).
-        if typewriterView {
-            let cursorScreenY: CGFloat
-            if pageMargins {
-                cursorScreenY = layout.paperY + CGFloat(doc.pages[doc.curPage].cy) * twFont.cellHeight
-            } else {
-                cursorScreenY = layout.textY0 + CGFloat(doc.pages[doc.curPage].cy) * twFont.cellHeight
+        // Typewriter + page margins (matches X11): strip above text_y0 uses surround
+        // so the fixed top margin does not stay paper-colored while rows scroll.
+        if pageMargins && typewriterView {
+            let topStripH = layout.textY0 - layout.paperY
+            if topStripH > 0 {
+                ctx.setFillColor(theme.surround.cgColor)
+                ctx.fill(CGRect(x: layout.paperX, y: layout.paperY,
+                                width: layout.paperW, height: topStripH))
             }
-            ctx.setFillColor(theme.surround.cgColor)
-            ctx.fill(CGRect(x: 0, y: 0, width: bounds.width, height: cursorScreenY))
         }
 
         drawCells(ctx: ctx, font: twFont, theme: theme)
+        if pageMargins && typewriterView {
+            drawTypewriterFloatingMarginBand(ctx: ctx, font: twFont, theme: theme)
+        }
         drawCursor(ctx: ctx, font: twFont, theme: theme)
         drawTypewriterRule(ctx: ctx, font: twFont)
         drawPageFooter(ctx: ctx, font: twFont, theme: theme)
@@ -458,14 +566,25 @@ class CanvasView: UIView {
         let fgColor = theme.ink.cgColor
         let bgColor = theme.paper.cgColor
 
-        for row in 0..<min(page.rows, layout.rows) {
+        let viewRows = min(page.rows, layout.rows)
+        let blankRowColor = pageMargins ? theme.surround.cgColor : theme.paper.cgColor
+
+        for row in 0..<viewRows {
             let bufferRow: Int
             if typewriterView {
-                bufferRow = typewriterBufferRow(for: row)
+                bufferRow = typewriterBufferRow(for: row, cursorY: page.cy, viewRows: viewRows)
             } else {
                 bufferRow = row
             }
-            guard bufferRow >= 0, bufferRow < page.rows else { continue }
+
+            let rowY = layout.textY0 + CGFloat(row) * cellH
+            if typewriterView && bufferRow < 0 {
+                ctx.setFillColor(blankRowColor)
+                ctx.fill(CGRect(x: layout.paperX, y: rowY, width: layout.paperW, height: cellH))
+                continue
+            }
+
+            guard bufferRow < page.rows else { continue }
 
             // Line number gutter (5 characters wide, right-aligned)
             if gutterMode != .off {
@@ -477,7 +596,7 @@ class CanvasView: UIView {
                 }
                 let numStr = String(format: "%5d", lineNum)
                 let gutterX = layout.textX0 - cellW * 5
-                let gutterY = layout.textY0 + CGFloat(row) * cellH
+                let gutterY = rowY
                 drawString(ctx: ctx, font: font, string: numStr, x: gutterX, y: gutterY,
                            fg: theme.lineNumberInk.cgColor, bg: bgColor)
             }
@@ -485,27 +604,61 @@ class CanvasView: UIView {
             // Text row
             let rowStr = page.rowString(bufferRow)
             let rowX = layout.textX0
-            let rowY = layout.textY0 + CGFloat(row) * cellH
             drawString(ctx: ctx, font: font, string: rowStr, x: rowX, y: rowY,
                        fg: fgColor, bg: bgColor)
         }
     }
 
-    /// In typewriter view mode, the cursor stays on the last visible row.
-    /// This function maps screen row → document row by computing the offset
-    /// so that the cursor line is always at the bottom of the screen.
-    /// Matches the X11 function typewriter_buf_row_for_sy().
-    private func typewriterBufferRow(for screenRow: Int) -> Int {
+    /// Map screen row → buffer row; `-1` = blank row above the growing document.
+    /// Port of X11 `typewriter_buf_row_for_sy`.
+    private func typewriterBufferRow(for screenRow: Int, cursorY: Int, viewRows: Int) -> Int {
+        let V = viewRows
+        if V <= 0 { return -1 }
+        let startSy = (cursorY + 1 <= V) ? (V - (cursorY + 1)) : 0
+        if screenRow < startSy { return -1 }
+        let buf0 = (cursorY + 1 <= V) ? 0 : (cursorY - (V - 1))
+        return buf0 + (screenRow - startSy)
+    }
+
+    /// Screen row where the cursor sits in typewriter mode. Port of X11 `typewriter_sy_for_cursor`.
+    private func typewriterSyForCursor(cursorY: Int, viewRows: Int) -> Int {
+        let V = viewRows
+        if V <= 0 { return 0 }
+        let startSy = (cursorY + 1 <= V) ? (V - (cursorY + 1)) : 0
+        let buf0 = (cursorY + 1 <= V) ? 0 : (cursorY - (V - 1))
+        return startSy + (cursorY - buf0)
+    }
+
+    /// After text rows: restore a paper-colored band above the first visible line (X11 parity).
+    private func drawTypewriterFloatingMarginBand(ctx: CGContext, font: TypewriterFont, theme: PaperTheme) {
         let page = doc.pages[doc.curPage]
-        let cursorY = page.cy
+        let cellH = font.cellHeight
         let viewRows = min(layout.rows, page.rows)
-        let offset = cursorY - (viewRows - 1)
-        return offset + screenRow
+        guard viewRows > 0 else { return }
+
+        var firstSy = -1
+        for sy in 0..<viewRows {
+            if typewriterBufferRow(for: sy, cursorY: page.cy, viewRows: viewRows) >= 0 {
+                firstSy = sy
+                break
+            }
+        }
+        guard firstSy >= 0 else { return }
+
+        let yFirst = layout.textY0 + CGFloat(firstSy) * cellH
+        let marginTopPx = layout.marginTop
+        let y0 = max(layout.paperY, yFirst - marginTopPx)
+        guard y0 > layout.paperY, y0 < yFirst else { return }
+
+        ctx.setFillColor(theme.paper.cgColor)
+        ctx.fill(CGRect(x: layout.paperX, y: y0, width: layout.paperW, height: yFirst - y0))
     }
 
     /// Draws a string of printable ASCII characters at monospaced grid positions.
-    /// Each character is drawn at (x + i*cellWidth, y + ascent) to align
-    /// the font baseline correctly within each grid cell.
+    /// Each character is drawn at (x + i*cellWidth, y). In UIKit, draw(at:) uses
+    /// the point as the text origin (top-left of the bounding rect in the
+    /// flipped coordinate system), so no ascent offset is needed — the y
+    /// coordinate already aligns with the cursor drawing position.
     private func drawString(ctx: CGContext, font: TypewriterFont, string: String,
                             x: CGFloat, y: CGFloat, fg: CGColor, bg: CGColor) {
         let uiFont = UIFont(name: CTFontCopyPostScriptName(font.ctFont) as String, size: CTFontGetSize(font.ctFont)) ?? UIFont.systemFont(ofSize: CTFontGetSize(font.ctFont))
@@ -518,9 +671,8 @@ class CanvasView: UIView {
         for (_, c) in string.enumerated() {
             guard c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 else { continue }
             let str = String(c)
-            let baselineY = y + font.ascent
             let attrStr = NSAttributedString(string: str, attributes: attrs)
-            attrStr.draw(at: CGPoint(x: currentX, y: baselineY))
+            attrStr.draw(at: CGPoint(x: currentX, y: y))
             currentX += font.cellWidth
         }
     }
@@ -540,7 +692,10 @@ class CanvasView: UIView {
 
         if typewriterView {
             let viewRows = min(layout.rows, page.rows)
-            cursorScreenRow = viewRows - 1
+            var sy = typewriterSyForCursor(cursorY: page.cy, viewRows: viewRows)
+            if sy < 0 { sy = 0 }
+            if sy >= viewRows { sy = viewRows - 1 }
+            cursorScreenRow = sy
         } else {
             cursorScreenRow = page.cy
         }
@@ -575,7 +730,10 @@ class CanvasView: UIView {
         let page = doc.pages[doc.curPage]
 
         let viewRows = min(layout.rows, page.rows)
-        let cursorScreenRow = viewRows - 1
+        var sy = typewriterSyForCursor(cursorY: page.cy, viewRows: viewRows)
+        if sy < 0 { sy = 0 }
+        if sy >= viewRows { sy = viewRows - 1 }
+        let cursorScreenRow = sy
 
         let ruleY = layout.textY0 + CGFloat(cursorScreenRow) * cellH + cellH
         ctx.setStrokeColor(theme.rule.cgColor)

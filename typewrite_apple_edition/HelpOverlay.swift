@@ -22,19 +22,25 @@ struct HelpOverlay: View {
         case toggleTypewriter = "toggleTypewriter"
         case toggleWordWrap = "toggleWordWrap"
         case toggleInsert = "toggleInsert"
+        case toggleSounds = "toggleSounds"
+        case cycleStatusPulse = "cycleStatusPulse"
     }
 
-    private let helpItems: [(String, String, String?)] = [
-        ("F2", "Cycle Font", "cycleFont"),
-        ("F3", "Cycle Cursor Mode", "cycleCursor"),
-        ("F4", "Cycle Background", "cycleTheme"),
-        ("F5", "Cycle Line Numbers", "cycleGutter"),
-        ("F6", "Toggle Page Margins", "toggleMargins"),
-        ("F7", "Cycle Columns (50\u{2013}65)", "cycleCols"),
-        ("F8", "Toggle Typewriter View", "toggleTypewriter"),
-        ("F10", "Toggle Word Wrap", "toggleWordWrap"),
-        ("Ins", "Toggle Insert/Typeover", "toggleInsert"),
-    ]
+    private var helpRows: [(String, String, String?)] {
+        [
+            ("F2", "Cycle Font", "cycleFont"),
+            ("F3", "Cycle Cursor Mode", "cycleCursor"),
+            ("F4", "Cycle Background", "cycleTheme"),
+            ("F5", "Cycle Line Numbers", "cycleGutter"),
+            ("F6", "Toggle Page Margins", "toggleMargins"),
+            ("F7", "Cycle Columns (50\u{2013}65)", "cycleCols"),
+            ("F8", "Toggle Typewriter View", "toggleTypewriter"),
+            ("F9", "Check-in: every \(settings.statusPulseIntervalLabel) (cycle)", "cycleStatusPulse"),
+            ("F10", "Toggle Word Wrap", "toggleWordWrap"),
+            ("F12", "Toggle Sounds", "toggleSounds"),
+            ("Ins", "Toggle Insert/Typeover", "toggleInsert"),
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -56,7 +62,7 @@ struct HelpOverlay: View {
 
                 ScrollView {
                     VStack(spacing: 6) {
-                        ForEach(helpItems, id: \.0) { item in
+                        ForEach(Array(helpRows.enumerated()), id: \.offset) { _, item in
                             helpRow(key: item.0, description: item.1, action: item.2)
                         }
                     }

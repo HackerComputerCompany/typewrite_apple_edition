@@ -17,6 +17,8 @@
 //   - load() deserializes text back into the grid, replacing all content
 
 import Foundation
+import QuartzCore
+import Combine
 
 struct TwCore {
     var cols: Int
@@ -110,28 +112,116 @@ class TwDoc {
     func putc(_ c: Character) {
         guard c.isASCII, c.asciiValue! >= 32, c.asciiValue! <= 126 else { return }
         let page = pages[curPage]
-        let isLastCol = page.cx >= cols - 1
         let isLastRow = page.cy >= rows - 1
 
         if insertMode {
-            insertPutc(c, isLastCol: isLastCol, isLastRow: isLastRow)
+            insertPutc(c, isLastRow: isLastRow)
         } else {
-            typeoverPutc(c, isLastCol: isLastCol, isLastRow: isLastRow)
+            typeoverPutc(c, isLastRow: isLastRow)
         }
     }
 
     var bellHandler: (() -> Void)?
 
-    private func typeoverPutc(_ c: Character, isLastCol: Bool, isLastRow: Bool) {
-        let oldCy = pages[curPage].cy
-        pages[curPage].putc(c)
-        if isLastRow && oldCy >= rows - 1 && pages[curPage].cy >= rows - 1 && pages[curPage].cx <= 1 {
+    private func rowAllSpaces(_ tw: TwCore, row: Int) -> Bool {
+        guard row >= 0, row < rows else { return true }
+        let base = row * cols
+        for i in 0..<cols where tw.cells[base + i] != " " { return false }
+        return true
+    }
+
+    /// Port of `twdoc_try_soft_wrap`: full line, break after last ASCII space when the next row is empty
+    /// (or when wrapping from the last row, advance to the next page like `twdoc_newline`).
+    private func trySoftWrap() -> Bool {
+        guard wordWrap else { return false }
+        guard pages[curPage].cx >= cols else { return false }
+
+        let cy = pages[curPage].cy
+        let rowBase = cy * cols
+
+        var lastNs = -1
+        for i in stride(from: cols - 1, through: 0, by: -1) {
+            if pages[curPage].cells[rowBase + i] != " " {
+                lastNs = i
+                break
+            }
+        }
+        guard lastNs >= 0 else { return false }
+
+        var sp = -1
+        for i in stride(from: lastNs - 1, through: 0, by: -1) {
+            if pages[curPage].cells[rowBase + i] == " " {
+                sp = i
+                break
+            }
+        }
+        guard sp >= 0 else { return false }
+
+        let tailLen = lastNs - sp
+        guard tailLen > 0, tailLen <= cols else { return false }
+
+        if cy < rows - 1 {
+            guard rowAllSpaces(pages[curPage], row: cy + 1) else { return false }
+        }
+
+        var buf: [Character] = []
+        buf.reserveCapacity(tailLen)
+        for i in 0..<tailLen {
+            buf.append(pages[curPage].cells[rowBase + sp + 1 + i])
+        }
+        for i in (sp + 1)..<cols {
+            pages[curPage].cells[rowBase + i] = " "
+        }
+
+        newline()
+        var tw = pages[curPage]
+        let nrow = tw.cy * cols
+        for i in 0..<cols {
+            tw.cells[nrow + i] = " "
+        }
+        for i in 0..<tailLen {
+            tw.cells[nrow + i] = buf[i]
+        }
+        tw.cx = tailLen
+        pages[curPage] = tw
+        return true
+    }
+
+    private func typeoverBellIfNeeded(oldCy: Int, isLastRow: Bool) {
+        let p = pages[curPage]
+        if isLastRow && oldCy >= rows - 1 && p.cy >= rows - 1 && p.cx <= 1 {
             bellHandler?()
             newPage()
         }
     }
 
-    private func insertPutc(_ c: Character, isLastCol: Bool, isLastRow: Bool) {
+    private func typeoverPutc(_ c: Character, isLastRow: Bool) {
+        let oldCy = pages[curPage].cy
+        var tw = pages[curPage]
+        guard tw.cx < cols && tw.cy < rows else { return }
+        tw.cells[tw.cy * cols + tw.cx] = c
+        tw.cx += 1
+        pages[curPage] = tw
+
+        if pages[curPage].cx >= cols {
+            if trySoftWrap() {
+                typeoverBellIfNeeded(oldCy: oldCy, isLastRow: isLastRow)
+                return
+            }
+            var t = pages[curPage]
+            if t.cy < rows - 1 {
+                t.cx = 0
+                t.cy += 1
+                pages[curPage] = t
+            } else {
+                t.cx = cols - 1
+                pages[curPage] = t
+            }
+        }
+        typeoverBellIfNeeded(oldCy: oldCy, isLastRow: isLastRow)
+    }
+
+    private func insertPutc(_ c: Character, isLastRow: Bool) {
         let p = pages[curPage]
         let row = p.cy
         let col = p.cx
@@ -143,6 +233,9 @@ class TwDoc {
         pages[curPage].cells[row * cols + col] = c
         pages[curPage].cx = col + 1
         if pages[curPage].cx >= cols {
+            if trySoftWrap() {
+                return
+            }
             if isLastRow {
                 newPage()
             } else {
@@ -348,5 +441,74 @@ extension String {
         var s = self
         while s.last == char { s.removeLast() }
         return s
+    }
+}
+
+// MARK: - Session metrics (matches Typewrite X11 status pulse / typing pace)
+
+enum TypingSessionInput: Sendable {
+    case printable
+    case tab
+    case newline
+}
+
+/// Tracks session “typing units” and a gap-based typing pace (EMA), like `TypingPace` in `main_x11.c`.
+@MainActor
+final class WritingSessionTracker: ObservableObject {
+    private(set) var sessionTypingUnits: UInt64 = 0
+    private var lastCharMonoMs: Double = 0
+    private var emaMsPerChar: Double = 0
+
+    private let pauseMs: Double = 2800
+    private let minGapMs: Double = 40
+    private let gapCapMs: Double = 720
+
+    func resetSession() {
+        sessionTypingUnits = 0
+        lastCharMonoMs = 0
+        emaMsPerChar = 0
+    }
+
+    func note(_ input: TypingSessionInput) {
+        switch input {
+        case .printable: sessionTypingUnits += 1
+        case .tab: sessionTypingUnits += 4
+        case .newline: sessionTypingUnits += 1
+        }
+        recordPaceSample()
+    }
+
+    private func recordPaceSample() {
+        let nowMs = CACurrentMediaTime() * 1000.0
+        defer { lastCharMonoMs = nowMs }
+        guard lastCharMonoMs > 0 else { return }
+        let dt = nowMs - lastCharMonoMs
+        guard dt >= minGapMs, dt < pauseMs else { return }
+        let dtf = min(dt, gapCapMs)
+        if emaMsPerChar <= 0 {
+            emaMsPerChar = dtf
+        } else {
+            emaMsPerChar = 0.88 * emaMsPerChar + 0.12 * dtf
+        }
+    }
+
+    func wpmRounded() -> UInt {
+        guard emaMsPerChar > 0 else { return 0 }
+        let w = 12000.0 / emaMsPerChar
+        if w < 0 { return 0 }
+        if w > 999 { return 999 }
+        return UInt(w + 0.5)
+    }
+
+    /// Same fields as X11 `format_status_pulse_toast`.
+    func statusPulseMessage(for doc: TwDoc) -> String {
+        let wpm = wpmRounded()
+        let sessWords = (sessionTypingUnits + 4) / 5
+        let docWords = UInt(max(0, doc.countWords()))
+        let tf = DateFormatter()
+        tf.locale = Locale.current
+        tf.dateFormat = "HH:mm"
+        let timestr = tf.string(from: Date())
+        return "\(wpm) wpm | session \(sessWords) words | doc \(docWords) words | \(timestr)"
     }
 }

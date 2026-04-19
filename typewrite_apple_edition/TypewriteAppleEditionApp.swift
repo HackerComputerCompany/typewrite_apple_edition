@@ -1,4 +1,4 @@
-// HelloiPadApp.swift
+// TypewriteAppleEditionApp.swift
 //
 // App entry point. Uses DocumentGroup with ReferenceFileDocument so that
 // the system handles file creation, opening, and saving. The document's
@@ -7,7 +7,7 @@
 import SwiftUI
 
 @main
-struct HelloiPadApp: App {
+struct TypewriteAppleEditionApp: App {
     var body: some Scene {
         DocumentGroup(newDocument: { PlainTextDocument() }) { file in
             EditorView(document: file.document)

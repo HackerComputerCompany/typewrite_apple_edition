@@ -14,8 +14,10 @@
 //   typewriter → typewriterView (bool, default true)
 //   wordwrap → wordWrap (bool, default true)
 //   insertmode → insertMode (bool, default false)
+//   soundenabled → soundEnabled (bool, default true)
 
-import UIKit
+import Foundation
+import Combine
 
 enum CursorMode: Int, CaseIterable {
     case bar = 0
@@ -48,6 +50,11 @@ enum GutterMode: Int, CaseIterable {
 class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
 
+    /// Same intervals as X11 `k_status_pulse_ms` (check-in toasts while writing).
+    static let statusPulseIntervals: [TimeInterval] = [60, 300, 600, 900, 1800, 3600]
+    static let statusPulseLabels = ["1 min", "5 min", "10 min", "15 min", "30 min", "1 hr"]
+    static var statusPulseCount: Int { statusPulseIntervals.count }
+
     @Published var fontIndex: Int {
         didSet { save() }
     }
@@ -76,6 +83,20 @@ class SettingsStore: ObservableObject {
         didSet { save() }
     }
 
+    /// macOS: whether the in-window floating tool strip is visible (menu **View → Show Floating Toolbar**).
+    @Published var macShowFloatingToolbar: Bool {
+        didSet { save() }
+    }
+
+    @Published var soundEnabled: Bool {
+        didSet { save() }
+    }
+
+    /// Index into `statusPulseIntervals` / `statusPulseLabels` (X11 `status_pulse` setting).
+    @Published var statusPulseIndex: Int {
+        didSet { save() }
+    }
+
     private let defaults = UserDefaults.standard
     private let prefix = "typewriter."
 
@@ -92,6 +113,10 @@ class SettingsStore: ObservableObject {
         typewriterView = d.object(forKey: prefix + "typewriterView") as? Bool ?? true
         wordWrap = d.object(forKey: prefix + "wordWrap") as? Bool ?? true
         insertMode = d.object(forKey: prefix + "insertMode") as? Bool ?? false
+        macShowFloatingToolbar = d.object(forKey: prefix + "macShowFloatingToolbar") as? Bool ?? true
+        soundEnabled = d.object(forKey: prefix + "soundEnabled") as? Bool ?? true
+        let sp = d.object(forKey: prefix + "status_pulse") as? Int ?? 0
+        statusPulseIndex = min(max(0, sp), Self.statusPulseCount - 1)
     }
 
     func save() {
@@ -104,6 +129,17 @@ class SettingsStore: ObservableObject {
         defaults.set(typewriterView, forKey: prefix + "typewriterView")
         defaults.set(wordWrap, forKey: prefix + "wordWrap")
         defaults.set(insertMode, forKey: prefix + "insertMode")
+        defaults.set(macShowFloatingToolbar, forKey: prefix + "macShowFloatingToolbar")
+        defaults.set(soundEnabled, forKey: prefix + "soundEnabled")
+        defaults.set(statusPulseIndex, forKey: prefix + "status_pulse")
+    }
+
+    var statusPulseIntervalSeconds: TimeInterval {
+        Self.statusPulseIntervals[min(max(0, statusPulseIndex), Self.statusPulseCount - 1)]
+    }
+
+    var statusPulseIntervalLabel: String {
+        Self.statusPulseLabels[min(max(0, statusPulseIndex), Self.statusPulseCount - 1)]
     }
 
     var theme: PaperTheme {

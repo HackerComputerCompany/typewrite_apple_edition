@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A60000000000000000000001"
-               BuildableName = "HelloiPad.app"
-               BlueprintName = "HelloiPad"
-               ReferencedContainer = "container:HelloiPad.xcodeproj">
+               BlueprintIdentifier = "C60000000000000000000002"
+               BuildableName = "typewrite_apple_edition.app"
+               BlueprintName = "typewrite_apple_edition_macOS"
+               ReferencedContainer = "container:typewrite_apple_edition.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,10 +43,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A60000000000000000000001"
-            BuildableName = "HelloiPad.app"
-            BlueprintName = "HelloiPad"
-            ReferencedContainer = "container:HelloiPad.xcodeproj">
+            BlueprintIdentifier = "C60000000000000000000002"
+            BuildableName = "typewrite_apple_edition.app"
+            BlueprintName = "typewrite_apple_edition_macOS"
+            ReferencedContainer = "container:typewrite_apple_edition.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -60,10 +60,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A60000000000000000000001"
-            BuildableName = "HelloiPad.app"
-            BlueprintName = "HelloiPad"
-            ReferencedContainer = "container:HelloiPad.xcodeproj">
+            BlueprintIdentifier = "C60000000000000000000002"
+            BuildableName = "typewrite_apple_edition.app"
+            BlueprintName = "typewrite_apple_edition_macOS"
+            ReferencedContainer = "container:typewrite_apple_edition.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

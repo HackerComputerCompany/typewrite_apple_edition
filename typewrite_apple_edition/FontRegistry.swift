@@ -16,8 +16,12 @@
 //   7: Share Tech Mono → arcade_blip
 //   8: System Mono     → simple_blip
 
-import UIKit
 import CoreText
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct TypewriterFont {
     let ctFont: CTFont
@@ -80,11 +84,20 @@ class FontRegistry {
             ))
         }
 
-        let mono = UIFontDescriptor
-            .preferredFontDescriptor(withTextStyle: .body)
-            .withDesign(.monospaced) ?? UIFontDescriptor
-            .preferredFontDescriptor(withTextStyle: .body)
-        let systemFont = CTFontCreateWithName(mono.postscriptName as CFString, 18.0, nil)
+        let systemFont: CTFont = {
+            #if os(iOS)
+            let mono = UIFontDescriptor
+                .preferredFontDescriptor(withTextStyle: .body)
+                .withDesign(.monospaced) ?? UIFontDescriptor
+                .preferredFontDescriptor(withTextStyle: .body)
+            return CTFontCreateWithName(mono.postscriptName as CFString, 24.0, nil)
+            #elseif os(macOS)
+            let ns = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+            return CTFontCreateWithName(ns.fontName as CFString, 24.0, nil)
+            #else
+            return CTFontCreateWithName("Menlo" as CFString, 24.0, nil)
+            #endif
+        }()
         let sysMetrics = computeMetrics(for: systemFont)
         fonts.append(TypewriterFont(
             ctFont: systemFont,
@@ -117,7 +130,7 @@ class FontRegistry {
             maxAdv = CTFontGetSize(ctFont) * 0.6
         }
 
-        let cellW = ceil(maxAdv) + 1.0
+        let cellW = ceil(maxAdv) + 0.5
         let cellH = lineH
         return (cellWidth: cellW, cellHeight: cellH, ascent: ascent, maxAdvance: maxAdv)
     }
