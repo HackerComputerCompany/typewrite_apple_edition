@@ -24,6 +24,7 @@ enum EditorMenuAction: String {
     case toggleWordWrap
     case toggleSounds
     case cycleStatusPulse
+    case showWindowBackground
 }
 #endif
 
@@ -52,6 +53,8 @@ struct EditorView: View {
     @State private var showDocumentPicker = false
     @State private var showExportPicker = false
     @State private var toolbarExpanded = true
+    /// macOS: sheet for window vibrancy + surround transparency (unused on iOS).
+    @State private var showMacWindowAppearanceSheet = false
     @State private var autosaveTimer: Timer?
     @FocusState private var canvasFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
@@ -81,19 +84,34 @@ struct EditorView: View {
             toastOverlay
             helpOverlay
         }
+        #if os(macOS)
+        .background {
+            MacEditorRootChrome(settings: settings)
+                .ignoresSafeArea()
+        }
+        #else
         .background(settings.theme.surroundSwiftUI)
+        #endif
         #if os(macOS)
         .overlay(alignment: .topLeading) {
-            MacKeyWindowBridge(isKeyWindow: $windowIsKey)
-                .frame(width: 0, height: 0)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            ZStack {
+                MacKeyWindowBridge(isKeyWindow: $windowIsKey)
+                MacWindowVibrancyBridge(blurPercent: settings.macChromeBlurPercent)
+            }
+            .frame(width: 0, height: 0)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .onReceive(NotificationCenter.default.publisher(for: .editorMenuAction)) { note in
             guard windowIsKey else { return }
             guard let raw = note.userInfo?["action"] as? String,
                   let action = EditorMenuAction(rawValue: raw) else { return }
             handleEditorMenuAction(action)
+        }
+        .sheet(isPresented: $showMacWindowAppearanceSheet) {
+            MacWindowAppearanceSheet(settings: settings) {
+                showMacWindowAppearanceSheet = false
+            }
         }
         #endif
         .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -104,6 +122,7 @@ struct EditorView: View {
         .onAppear {
             if !document.text.isEmpty {
                 canvas.doc.load(document.text)
+                refreshCanvasAfterDocumentLoad()
             }
             SoundManager.shared.preload()
             alignStatusPulseSchedule()
@@ -175,6 +194,12 @@ struct EditorView: View {
                 Button { toggleMargins() } label: {
                     Image(systemName: settings.pageMargins ? "doc.richtext" : "doc.plaintext")
                 }
+                #if os(macOS)
+                Button { showMacWindowAppearanceSheet = true } label: {
+                    Image(systemName: "rectangle.dashed")
+                }
+                .accessibilityLabel("Window background blur and transparency")
+                #endif
                 Button { toggleInsert() } label: {
                     Text(settings.insertMode ? "INS" : "OVR")
                         .font(.system(.caption2, design: .monospaced))
@@ -269,6 +294,14 @@ struct EditorView: View {
 
     private func saveNow() {
         document.text = canvas.doc.fullText()
+    }
+
+    /// `TwDoc.load` does not go through the keyboard path, so the UIView/AppKit view may not redraw until
+    /// the next `updateUIView`/`updateNSView`. A second pass runs after any pending layout/resize.
+    private func refreshCanvasAfterDocumentLoad() {
+        canvas.resetCursorBlink()
+        let c = canvas
+        DispatchQueue.main.async { c.resetCursorBlink() }
     }
 
     // MARK: - Actions
@@ -387,6 +420,7 @@ struct EditorView: View {
                 canvas.doc.load(text)
                 sessionTracker.resetSession()
                 saveNow()
+                refreshCanvasAfterDocumentLoad()
             }
         case .failure: break
         }
@@ -411,7 +445,138 @@ extension EditorView {
         case .toggleWordWrap: toggleWordWrap()
         case .toggleSounds: toggleSounds()
         case .cycleStatusPulse: cycleStatusPulse()
+        case .showWindowBackground: showMacWindowAppearanceSheet = true
         }
+    }
+}
+
+// MARK: - macOS window chrome (vibrancy + adjustable tint)
+
+private struct MacEditorRootChrome: View {
+    @ObservedObject var settings: SettingsStore
+
+    var body: some View {
+        let theme = settings.theme
+        let blur = settings.macChromeBlurPercent
+        let a = settings.macSurroundTintAlpha()
+        ZStack {
+            if blur > 0 {
+                MacChromeBackdropView(blurPercent: blur)
+                Color(nsColor: theme.surround).opacity(Double(a))
+            } else {
+                Color(nsColor: theme.surround).opacity(Double(a))
+            }
+        }
+    }
+}
+
+private struct MacChromeBackdropView: NSViewRepresentable {
+    var blurPercent: Int
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.blendingMode = .behindWindow
+        v.state = .active
+        return v
+    }
+
+    func updateNSView(_ v: NSVisualEffectView, context: Context) {
+        v.material = Self.material(for: blurPercent)
+    }
+
+    private static func material(for blurPercent: Int) -> NSVisualEffectView.Material {
+        let b = min(max(blurPercent, 1), 100)
+        switch b {
+        case 1..<21: return .contentBackground
+        case 21..<41: return .sidebar
+        case 41..<61: return .underWindowBackground
+        case 61..<81: return .hudWindow
+        default: return .fullScreenUI
+        }
+    }
+}
+
+private struct MacWindowVibrancyBridge: NSViewRepresentable {
+    var blurPercent: Int
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ v: NSView, context: Context) {
+        guard let w = v.window else { return }
+        if blurPercent > 0 {
+            w.isOpaque = false
+            w.backgroundColor = .clear
+        } else {
+            w.isOpaque = true
+            w.backgroundColor = .windowBackgroundColor
+        }
+    }
+}
+
+private struct MacWindowAppearanceSheet: View {
+    @ObservedObject var settings: SettingsStore
+    var onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Slider(value: blurBinding, in: 0...100, step: 1)
+                    Text(blurCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Background blur")
+                } footer: {
+                    Text("0 keeps a solid window; higher values use a frosted material behind the editor.")
+                }
+
+                Section {
+                    Slider(value: transparencyBinding, in: 1...100, step: 1)
+                    Text("Surround tint: \(settings.macChromeTransparencyPercent)% transparent")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Surround transparency")
+                } footer: {
+                    Text("1% is nearly opaque; 100% removes the dark surround tint so only blur (if any) shows through.")
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("Window background")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { onDismiss() }
+                }
+            }
+        }
+        .frame(minWidth: 380, minHeight: 320)
+    }
+
+    private var blurCaption: String {
+        switch settings.macChromeBlurPercent {
+        case 0: return "Blur: off (solid)"
+        case 1..<26: return "Blur: light"
+        case 26..<51: return "Blur: medium"
+        case 51..<76: return "Blur: strong"
+        default: return "Blur: maximum"
+        }
+    }
+
+    private var blurBinding: Binding<Double> {
+        Binding(
+            get: { Double(settings.macChromeBlurPercent) },
+            set: { settings.macChromeBlurPercent = Int($0.rounded()) }
+        )
+    }
+
+    private var transparencyBinding: Binding<Double> {
+        Binding(
+            get: { Double(settings.macChromeTransparencyPercent) },
+            set: { settings.macChromeTransparencyPercent = Int($0.rounded()) }
+        )
     }
 }
 

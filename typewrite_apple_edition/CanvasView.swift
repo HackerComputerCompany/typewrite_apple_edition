@@ -384,11 +384,13 @@ class CanvasView: UIView {
             setNeedsDisplay()
             return
         default:
-            // Catch newline characters that arrive without .keyboardReturn keyCode
+            // Catch newline/printable that arrive without a known keyCode (incl. Unicode space from some layouts)
             if let c = chars.first {
                 if c == "\n" || c == "\r" {
                     handleEnter()
-                } else if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii < 127 {
+                } else if c.isNewline {
+                    handleEnter()
+                } else {
                     typeCharacter(c)
                 }
             }
@@ -484,6 +486,11 @@ class CanvasView: UIView {
         } else if c == "\t" {
             soundManager.playKey(for: fontIndex)
             tabInsert()
+        } else if c.isNewline {
+            handleEnter()
+        } else if c.isWhitespace, !c.isNewline {
+            // NBSP, figure space, ideographic space, etc. (paste from web/PDF)
+            typeCharWithSound(" ")
         } else if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii < 127 {
             typeCharWithSound(c)
         }

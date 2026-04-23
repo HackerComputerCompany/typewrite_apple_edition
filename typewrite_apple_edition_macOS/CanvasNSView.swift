@@ -308,6 +308,8 @@ final class CanvasNSView: NSView {
             if c == "\u{8}" { handleBackspace(); return }
             if c == "\n" || c == "\r" { handleEnter(); return }
             if c == "\t" { soundManager.playKey(for: fontIndex); tabInsert(); return }
+            if c.isNewline { handleEnter(); return }
+            if c.isWhitespace, !c.isNewline { typeCharWithSound(" "); return }
             if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii < 127 {
                 typeCharacter(c)
                 return
@@ -323,6 +325,10 @@ final class CanvasNSView: NSView {
         } else if c == "\t" {
             soundManager.playKey(for: fontIndex)
             tabInsert()
+        } else if c.isNewline {
+            handleEnter()
+        } else if c.isWhitespace, !c.isNewline {
+            typeCharWithSound(" ")
         } else if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii < 127 {
             typeCharWithSound(c)
         }
@@ -413,9 +419,10 @@ final class CanvasNSView: NSView {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
         let theme = settings.theme
         let twFont = fontRegistry.font(at: fontIndex)
+        let surroundFill = settings.macSurroundTintNSColor(theme: theme).cgColor
 
         if pageMargins {
-            ctx.setFillColor(theme.surround.cgColor)
+            ctx.setFillColor(surroundFill)
             ctx.fill(bounds)
 
             let paperRect = CGRect(x: viewLayout.paperX, y: viewLayout.paperY,
@@ -438,13 +445,13 @@ final class CanvasNSView: NSView {
         if pageMargins && typewriterView {
             let topStripH = viewLayout.textY0 - viewLayout.paperY
             if topStripH > 0 {
-                ctx.setFillColor(theme.surround.cgColor)
+                ctx.setFillColor(surroundFill)
                 ctx.fill(CGRect(x: viewLayout.paperX, y: viewLayout.paperY,
                                 width: viewLayout.paperW, height: topStripH))
             }
         }
 
-        drawCells(ctx: ctx, font: twFont, theme: theme)
+        drawCells(ctx: ctx, font: twFont, theme: theme, surroundFill: surroundFill)
         if pageMargins && typewriterView {
             drawTypewriterFloatingMarginBand(ctx: ctx, font: twFont, theme: theme)
         }
@@ -453,7 +460,7 @@ final class CanvasNSView: NSView {
         drawPageFooter(ctx: ctx, font: twFont, theme: theme)
     }
 
-    private func drawCells(ctx: CGContext, font: TypewriterFont, theme: PaperTheme) {
+    private func drawCells(ctx: CGContext, font: TypewriterFont, theme: PaperTheme, surroundFill: CGColor) {
         let page = doc.pages[doc.curPage]
         let cellW = font.cellWidth
         let cellH = font.cellHeight
@@ -462,7 +469,7 @@ final class CanvasNSView: NSView {
         let bgColor = theme.paper.cgColor
 
         let viewRows = min(page.rows, viewLayout.rows)
-        let blankRowColor = pageMargins ? theme.surround.cgColor : theme.paper.cgColor
+        let blankRowColor = pageMargins ? surroundFill : theme.paper.cgColor
 
         for row in 0..<viewRows {
             let bufferRow: Int

@@ -19,6 +19,10 @@
 import Foundation
 import Combine
 
+#if os(macOS)
+import AppKit
+#endif
+
 enum CursorMode: Int, CaseIterable {
     case bar = 0
     case blinkBar = 1
@@ -88,6 +92,18 @@ class SettingsStore: ObservableObject {
         didSet { save() }
     }
 
+    #if os(macOS)
+    /// macOS: 0 = solid window chrome (no vibrancy). 1…100 = stronger `NSVisualEffectView` material (more blur).
+    @Published var macChromeBlurPercent: Int {
+        didSet { save() }
+    }
+
+    /// macOS: 1 = opaque surround tint, 100 = fully transparent (no darkening on top of blur / solid fill).
+    @Published var macChromeTransparencyPercent: Int {
+        didSet { save() }
+    }
+    #endif
+
     @Published var soundEnabled: Bool {
         didSet { save() }
     }
@@ -114,6 +130,12 @@ class SettingsStore: ObservableObject {
         wordWrap = d.object(forKey: prefix + "wordWrap") as? Bool ?? true
         insertMode = d.object(forKey: prefix + "insertMode") as? Bool ?? false
         macShowFloatingToolbar = d.object(forKey: prefix + "macShowFloatingToolbar") as? Bool ?? true
+        #if os(macOS)
+        let blur = d.object(forKey: prefix + "macChromeBlurPercent") as? Int ?? 0
+        macChromeBlurPercent = min(max(blur, 0), 100)
+        let trans = d.object(forKey: prefix + "macChromeTransparencyPercent") as? Int ?? 1
+        macChromeTransparencyPercent = min(max(trans, 1), 100)
+        #endif
         soundEnabled = d.object(forKey: prefix + "soundEnabled") as? Bool ?? true
         let sp = d.object(forKey: prefix + "status_pulse") as? Int ?? 0
         statusPulseIndex = min(max(0, sp), Self.statusPulseCount - 1)
@@ -130,6 +152,10 @@ class SettingsStore: ObservableObject {
         defaults.set(wordWrap, forKey: prefix + "wordWrap")
         defaults.set(insertMode, forKey: prefix + "insertMode")
         defaults.set(macShowFloatingToolbar, forKey: prefix + "macShowFloatingToolbar")
+        #if os(macOS)
+        defaults.set(macChromeBlurPercent, forKey: prefix + "macChromeBlurPercent")
+        defaults.set(macChromeTransparencyPercent, forKey: prefix + "macChromeTransparencyPercent")
+        #endif
         defaults.set(soundEnabled, forKey: prefix + "soundEnabled")
         defaults.set(statusPulseIndex, forKey: prefix + "status_pulse")
     }
@@ -145,4 +171,16 @@ class SettingsStore: ObservableObject {
     var theme: PaperTheme {
         PaperTheme(rawValue: themeIndex) ?? .dark
     }
+
+    #if os(macOS)
+    /// Alpha for the theme surround tint (1 = opaque … 0 = invisible). `macChromeTransparencyPercent` 1→100 maps linearly.
+    func macSurroundTintAlpha() -> CGFloat {
+        let t = min(max(macChromeTransparencyPercent, 1), 100)
+        return CGFloat(1.0 - Double(t - 1) / 99.0)
+    }
+
+    func macSurroundTintNSColor(theme: PaperTheme) -> NSColor {
+        theme.surround.withAlphaComponent(macSurroundTintAlpha())
+    }
+    #endif
 }

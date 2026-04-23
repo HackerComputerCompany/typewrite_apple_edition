@@ -110,14 +110,17 @@ class TwDoc {
     }
 
     func putc(_ c: Character) {
-        guard c.isASCII, c.asciiValue! >= 32, c.asciiValue! <= 126 else { return }
+        if c == "\t" { return }
+        // Unicode spaces (NBSP U+00A0, em space, ideographic space, etc.) are not ASCII; map to grid space.
+        let g: Character = (c.isWhitespace && !c.isNewline) ? " " : c
+        guard g.isASCII, g.asciiValue! >= 32, g.asciiValue! <= 126 else { return }
         let page = pages[curPage]
         let isLastRow = page.cy >= rows - 1
 
         if insertMode {
-            insertPutc(c, isLastRow: isLastRow)
+            insertPutc(g, isLastRow: isLastRow)
         } else {
-            typeoverPutc(c, isLastRow: isLastRow)
+            typeoverPutc(g, isLastRow: isLastRow)
         }
     }
 
@@ -348,7 +351,6 @@ class TwDoc {
 
     func resize(cols newCols: Int, rows newRows: Int) {
         let text = fullText()
-        let oldPage = curPage
         let oldCy = pages[curPage].cy
         let oldCx = pages[curPage].cx
         let offset = oldCy * cols + oldCx
@@ -400,28 +402,55 @@ class TwDoc {
         return result
     }
 
+    /// Line breaks for loading plain text, matching `NSCharacterSet.newlines` (NEL, U+2028, U+2029, …) but **not** form feed (U+000C) — that stays in-band as a page break (`newPage()`), same as `fullText()` and X11.
+    private static var textLoadLineBreakSet: CharacterSet = {
+        let m = (NSCharacterSet.newlines as NSCharacterSet).mutableCopy() as! NSMutableCharacterSet
+        m.removeCharacters(in: "\u{0C}")
+        return m as CharacterSet
+    }()
+
     func load(_ text: String) {
+        // Normalize common line endings, then split on the full newline set (per-`Character` iteration is unreliable for NEL, LS, PS, etc.).
+        let normalized = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        let lines = normalized.components(separatedBy: Self.textLoadLineBreakSet)
+
         pages = [TwCore(cols: cols, rows: rows)]
         curPage = 0
-        for c in text {
-            if c == "\u{0C}" {
-                newPage()
-                pages[curPage].cx = 0
-                pages[curPage].cy = 0
-                continue
+
+        for (lineIndex, line) in lines.enumerated() {
+            for c in line {
+                if c == "\u{0C}" {
+                    newPage()
+                    pages[curPage].cx = 0
+                    pages[curPage].cy = 0
+                    continue
+                }
+                if c == "\t" {
+                    for _ in 0..<4 { putc(" ") }
+                    continue
+                }
+                if c.isNewline {
+                    newline()
+                    continue
+                }
+                if c.isWhitespace, !c.isNewline {
+                    putc(" ")
+                    continue
+                }
+                if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 {
+                    putc(c)
+                }
             }
-            if c == "\n" { newline(); continue }
-            if c == "\t" {
-                for _ in 0..<4 { putc(" ") }
-                continue
-            }
-            if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 {
-                putc(c)
+            if lineIndex < lines.count - 1 {
+                newline()
             }
         }
-        curPage = 0
-        pages[curPage].cx = 0
-        pages[curPage].cy = 0
+        // Leave the cursor at the end of the loaded text (do not force 0,0 on page 0). Matching X11’s twdoc_load
+        // would pin to the top of page 0, but with typewriter rendering that made multi-line opens look “empty”
+        // until the cursor moved — only one buffer row is visible when cy == 0. End-of-text cursor maps the viewport correctly.
     }
 
     func countWords() -> Int {

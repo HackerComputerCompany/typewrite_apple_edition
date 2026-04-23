@@ -23,6 +23,11 @@ struct TypewriteAppleEditionMacApp: App {
                     set: { SettingsStore.shared.macShowFloatingToolbar = $0 }
                 ))
                 .keyboardShortcut("t", modifiers: [.command, .option])
+                Divider()
+                Button("Window Background…") {
+                    postEditorMenuAction(.showWindowBackground)
+                }
+                .keyboardShortcut("b", modifiers: [.command, .option])
             }
             CommandMenu("Typewrite") {
                 Button("Keyboard Help…") {

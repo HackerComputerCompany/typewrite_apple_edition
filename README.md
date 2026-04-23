@@ -64,4 +64,8 @@ From the **`typewrite_apple_edition`** repository directory, open `typewrite_app
 
 Requires iPadOS 17.0+ (iPad target) or macOS 14.0+ (Mac target). A hardware keyboard is recommended on iPad; the software keyboard also works for basic text entry.
 
+**Changelog:** [CHANGELOG.md](CHANGELOG.md). **Bug report write-ups** (repro, root cause, fix): [docs/bug-reports/README.md](docs/bug-reports/README.md).
+
+On **macOS**, use **View → Window Background…** (⌥⌘B) to adjust frosted **blur** (0–100) and **surround transparency** (1–100%, how much the dark border fades to show the desktop through).
+
 Because the bundle identifiers changed, open **Signing & Capabilities** in Xcode once per target so automatic signing can register the new IDs with your Apple Developer team.

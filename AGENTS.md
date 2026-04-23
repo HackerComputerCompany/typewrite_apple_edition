@@ -39,6 +39,10 @@ xcodebuild -project typewrite_apple_edition.xcodeproj -scheme typewrite_apple_ed
 
 Or open `typewrite_apple_edition.xcodeproj` in Xcode 16+ and Cmd+R.
 
+**Changelog and bug write-ups:** [CHANGELOG.md](CHANGELOG.md) (release notes) and [docs/bug-reports/README.md](docs/bug-reports/README.md) (BR-00x technical reports, linked from the changelog).
+
+**Window chrome (macOS only):** **View → Window Background…** (⌥⌘B) or the dashed-rectangle toolbar control opens a sheet. **Background blur** (0–100) turns on `NSVisualEffectView` behind the editor (0 = solid); **Surround transparency** (1–100%) fades the dark surround tint so the desktop shows through. Values persist in `SettingsStore` (`macChromeBlurPercent`, `macChromeTransparencyPercent`). `CanvasNSView` uses the same tint alpha for margin fills.
+
 **Signing:** Bundle IDs were renamed to `com.hackercomputercompany.typewrite.apple.edition` (iOS) and `…typewrite.apple.edition.macOS` (Mac). After pulling this change, open the project in Xcode, select each target, and confirm **Signing & Capabilities** resolves automatic signing (Xcode may prompt to register the new identifiers with your team).
 
 ## Architecture
