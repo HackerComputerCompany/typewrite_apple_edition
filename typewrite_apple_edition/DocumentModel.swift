@@ -355,6 +355,12 @@ class TwDoc {
         let oldCx = pages[curPage].cx
         let offset = oldCy * cols + oldCx
 
+        // Replaying `fullText()` must not use insert mode (row shifts) or drop newlines — `putc` only accepts
+        // ASCII 32…126, so `\n` / Unicode line breaks were ignored and all rows collapsed into one line.
+        let savedInsert = insertMode
+        insertMode = false
+        defer { insertMode = savedInsert }
+
         cols = newCols
         rows = newRows
         pages = [TwCore(cols: newCols, rows: newRows)]
@@ -368,6 +374,14 @@ class TwDoc {
                 newPage()
                 pages[curPage].cx = 0
                 pages[curPage].cy = 0
+                continue
+            }
+            if c == "\n" || c == "\r" {
+                newline()
+                continue
+            }
+            if c.isNewline {
+                newline()
                 continue
             }
             putc(c)
@@ -410,6 +424,11 @@ class TwDoc {
     }()
 
     func load(_ text: String) {
+        // Insert mode would shift the grid on each `putc` and destroy imported layout.
+        let savedInsert = insertMode
+        insertMode = false
+        defer { insertMode = savedInsert }
+
         // Normalize common line endings, then split on the full newline set (per-`Character` iteration is unreliable for NEL, LS, PS, etc.).
         let normalized = text
             .replacingOccurrences(of: "\r\n", with: "\n")
