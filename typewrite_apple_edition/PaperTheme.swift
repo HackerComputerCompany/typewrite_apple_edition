@@ -97,4 +97,13 @@ enum PaperTheme: Int, CaseIterable, Identifiable {
         Color.gray
         #endif
     }
+
+    /// Per-cell “inline” colour (independent of the main theme `ink` for red/blue highlights).
+    func inlinePlatformInk(_ color: InkColor) -> PlatformColor {
+        switch color {
+        case .ink: return self.ink
+        case .red: return PlatformColor(red: 0.88, green: 0.12, blue: 0.18, alpha: 1.0)
+        case .blue: return PlatformColor(red: 0.2, green: 0.38, blue: 0.95, alpha: 1.0)
+        }
+    }
 }

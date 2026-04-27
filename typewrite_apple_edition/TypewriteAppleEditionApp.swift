@@ -9,7 +9,7 @@ import SwiftUI
 @main
 struct TypewriteAppleEditionApp: App {
     var body: some Scene {
-        DocumentGroup(newDocument: { PlainTextDocument() }) { file in
+        DocumentGroup(newDocument: { TypewriteDocument() }) { file in
             EditorView(document: file.document)
         }
     }

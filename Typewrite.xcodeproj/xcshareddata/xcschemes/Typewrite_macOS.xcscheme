@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2620"
+   LastUpgradeVersion = "2640"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C60000000000000000000002"
-               BuildableName = "typewrite_apple_edition.app"
-               BlueprintName = "typewrite_apple_edition_macOS"
-               ReferencedContainer = "container:typewrite_apple_edition.xcodeproj">
+               BuildableName = "Typewrite.app"
+               BlueprintName = "Typewrite_macOS"
+               ReferencedContainer = "container:Typewrite.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -44,9 +44,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "C60000000000000000000002"
-            BuildableName = "typewrite_apple_edition.app"
-            BlueprintName = "typewrite_apple_edition_macOS"
-            ReferencedContainer = "container:typewrite_apple_edition.xcodeproj">
+            BuildableName = "Typewrite.app"
+            BlueprintName = "Typewrite_macOS"
+            ReferencedContainer = "container:Typewrite.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -61,9 +61,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "C60000000000000000000002"
-            BuildableName = "typewrite_apple_edition.app"
-            BlueprintName = "typewrite_apple_edition_macOS"
-            ReferencedContainer = "container:typewrite_apple_edition.xcodeproj">
+            BuildableName = "Typewrite.app"
+            BlueprintName = "Typewrite_macOS"
+            ReferencedContainer = "container:Typewrite.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

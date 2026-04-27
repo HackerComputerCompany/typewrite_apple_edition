@@ -60,7 +60,7 @@ Hardware keyboard required for best experience. The iOS system keyboard also wor
 
 ## Building
 
-From the **`typewrite_apple_edition`** repository directory, open `typewrite_apple_edition.xcodeproj` in Xcode 16+. Use the **typewrite_apple_edition** scheme for iPad (simulator or device) or **typewrite_apple_edition_macOS** for Mac, then build and run.
+From the **`typewrite_apple_edition`** repository directory, open `Typewrite.xcodeproj` in Xcode 16+. Use the **Typewrite** scheme for iPad (simulator or device) or **Typewrite_macOS** for Mac, then build and run.
 
 Requires iPadOS 17.0+ (iPad target) or macOS 14.0+ (Mac target). A hardware keyboard is recommended on iPad; the software keyboard also works for basic text entry.
 

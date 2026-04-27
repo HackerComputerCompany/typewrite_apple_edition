@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 
 #if os(macOS)
 import AppKit
@@ -41,7 +42,7 @@ final class CanvasViewState: ObservableObject {
 private let statusPulseTicker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
 struct EditorView: View {
-    @ObservedObject var document: PlainTextDocument
+    @ObservedObject var document: TypewriteDocument
     @ObservedObject private var settings = SettingsStore.shared
     @State private var showHelp = false
     @State private var toastText: String?
@@ -67,6 +68,14 @@ struct EditorView: View {
     #elseif os(macOS)
     private var canvas: CanvasNSView { canvasState.canvas }
     #endif
+
+    private var inkToolbarColor: Color {
+        switch settings.activeInk {
+        case .ink: return .primary
+        case .red: return .red
+        case .blue: return .blue
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -120,10 +129,7 @@ struct EditorView: View {
             }
         }
         .onAppear {
-            if !document.text.isEmpty {
-                canvas.doc.load(document.text)
-                refreshCanvasAfterDocumentLoad()
-            }
+            applyFilePayloadToCanvas()
             SoundManager.shared.preload()
             alignStatusPulseSchedule()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -136,10 +142,10 @@ struct EditorView: View {
         .onReceive(statusPulseTicker) { _ in
             tickStatusPulseIfDue()
         }
-        .fileImporter(isPresented: $showDocumentPicker, allowedContentTypes: [.plainText]) { result in
+        .fileImporter(isPresented: $showDocumentPicker, allowedContentTypes: [.typewriteDocument, .plainText, .utf8PlainText]) { result in
             handleOpen(result)
         }
-        .fileExporter(isPresented: $showExportPicker, document: document, contentType: .plainText) { _ in }
+        .fileExporter(isPresented: $showExportPicker, document: document, contentType: .typewriteDocument) { _ in }
     }
 
     private var canvasArea: some View {
@@ -152,7 +158,8 @@ struct EditorView: View {
             },
             onTypingSessionInput: { sessionTracker.note($0) },
             onStatusPulseShortcut: { cycleStatusPulse() },
-            onToggleSoundsShortcut: { toggleSounds() }
+            onToggleSoundsShortcut: { toggleSounds() },
+            onCycleInkShortcut: { cycleInkColor() }
         )
         .focused($canvasFocused)
     }
@@ -175,6 +182,11 @@ struct EditorView: View {
                 Button { showHelp = true } label: {
                     Image(systemName: "questionmark.circle")
                 }
+                Button { cycleInkColor() } label: {
+                    Image(systemName: "drop.fill")
+                        .foregroundStyle(inkToolbarColor)
+                }
+                .accessibilityLabel("Cycle ink color")
                 Button { cycleFont() } label: {
                     Image(systemName: "textformat")
                 }
@@ -293,7 +305,22 @@ struct EditorView: View {
     }
 
     private func saveNow() {
-        document.text = canvas.doc.fullText()
+        document.updateSnapshot(
+            doc: canvas.doc,
+            session: sessionTracker.sessionMetadataForArchive()
+        )
+    }
+
+    private func applyFilePayloadToCanvas() {
+        if document.openedAsPlainText {
+            canvas.doc.load(String(decoding: document.fileData, as: UTF8.self))
+        } else if let result = try? TwBinaryArchiveV1.decode(document.fileData) {
+            canvas.doc = result.0
+            sessionTracker.applySessionMetadata(result.1)
+        }
+        canvas.rebindDocumentBell()
+        canvas.updateFromSettings()
+        refreshCanvasAfterDocumentLoad()
     }
 
     /// `TwDoc.load` does not go through the keyboard path, so the UIView/AppKit view may not redraw until
@@ -319,7 +346,15 @@ struct EditorView: View {
         case .toggleInsert: toggleInsert()
         case .toggleSounds: toggleSounds()
         case .cycleStatusPulse: cycleStatusPulse()
+        case .cycleInk: cycleInkColor()
         }
+    }
+
+    private func cycleInkColor() {
+        settings.cycleInkColor()
+        canvas.updateFromSettings()
+        let names = ["Default", "Red", "Blue"]
+        showToast("Ink: \(names[min(settings.inkColorIndex, 2)])")
     }
 
     @discardableResult
@@ -415,13 +450,18 @@ struct EditorView: View {
         case .success(let url):
             guard url.startAccessingSecurityScopedResource() else { return }
             defer { url.stopAccessingSecurityScopedResource() }
-            if let data = try? Data(contentsOf: url),
-               let text = String(data: data, encoding: .utf8) {
+            guard let data = try? Data(contentsOf: url) else { return }
+            if data.count >= 4, String(data: data[0..<4], encoding: .ascii) == TwBinaryArchiveV1.magic,
+               let decoded = try? TwBinaryArchiveV1.decode(data) {
+                canvas.doc = decoded.0
+                sessionTracker.applySessionMetadata(decoded.1)
+            } else if let text = String(data: data, encoding: .utf8) {
                 canvas.doc.load(text)
                 sessionTracker.resetSession()
-                saveNow()
-                refreshCanvasAfterDocumentLoad()
             }
+            canvas.rebindDocumentBell()
+            saveNow()
+            refreshCanvasAfterDocumentLoad()
         case .failure: break
         }
     }
@@ -644,12 +684,14 @@ struct CanvasRepresentable: UIViewRepresentable {
     var onTypingSessionInput: ((TypingSessionInput) -> Void)?
     var onStatusPulseShortcut: (() -> Void)?
     var onToggleSoundsShortcut: (() -> Void)?
+    var onCycleInkShortcut: (() -> Void)?
 
     func makeUIView(context: Context) -> CanvasView {
         canvasView.onTextChange = onTextChange
         canvasView.onTypingSessionInput = onTypingSessionInput
         canvasView.onStatusPulseShortcut = onStatusPulseShortcut
         canvasView.onToggleSoundsShortcut = onToggleSoundsShortcut
+        canvasView.onCycleInkShortcut = onCycleInkShortcut
         canvasView.updateFromSettings()
         canvasView.claimFocus()
         return canvasView
@@ -660,6 +702,7 @@ struct CanvasRepresentable: UIViewRepresentable {
         uiView.onTypingSessionInput = onTypingSessionInput
         uiView.onStatusPulseShortcut = onStatusPulseShortcut
         uiView.onToggleSoundsShortcut = onToggleSoundsShortcut
+        uiView.onCycleInkShortcut = onCycleInkShortcut
         uiView.updateFromSettings()
         uiView.setNeedsDisplay()
     }
@@ -672,12 +715,14 @@ struct CanvasRepresentable: NSViewRepresentable {
     var onTypingSessionInput: ((TypingSessionInput) -> Void)?
     var onStatusPulseShortcut: (() -> Void)?
     var onToggleSoundsShortcut: (() -> Void)?
+    var onCycleInkShortcut: (() -> Void)?
 
     func makeNSView(context: Context) -> CanvasNSView {
         canvasView.onTextChange = onTextChange
         canvasView.onTypingSessionInput = onTypingSessionInput
         canvasView.onStatusPulseShortcut = onStatusPulseShortcut
         canvasView.onToggleSoundsShortcut = onToggleSoundsShortcut
+        canvasView.onCycleInkShortcut = onCycleInkShortcut
         canvasView.updateFromSettings()
         canvasView.claimFocus()
         return canvasView
@@ -688,6 +733,7 @@ struct CanvasRepresentable: NSViewRepresentable {
         nsView.onTypingSessionInput = onTypingSessionInput
         nsView.onStatusPulseShortcut = onStatusPulseShortcut
         nsView.onToggleSoundsShortcut = onToggleSoundsShortcut
+        nsView.onCycleInkShortcut = onCycleInkShortcut
         nsView.updateFromSettings()
         nsView.needsDisplay = true
     }

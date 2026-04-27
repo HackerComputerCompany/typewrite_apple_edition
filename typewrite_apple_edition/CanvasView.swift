@@ -53,6 +53,7 @@ class CanvasView: UIView {
 
     var onStatusPulseShortcut: (() -> Void)?
     var onToggleSoundsShortcut: (() -> Void)?
+    var onCycleInkShortcut: (() -> Void)?
 
     /// Called when page count or cursor page changes (unused currently).
     var onDocInfoUpdate: ((Int, Int) -> Void)?
@@ -114,6 +115,13 @@ class CanvasView: UIView {
         }
     }
 
+    /// Call after replacing `doc` (e.g. opening a binary file) so the margin bell is wired to this view.
+    func rebindDocumentBell() {
+        doc.bellHandler = { [weak self] in
+            self?.soundManager.playBell(for: self?.fontIndex ?? 2)
+        }
+    }
+
     // MARK: - DisplayLink lifecycle
 
     override func didMoveToWindow() {
@@ -169,6 +177,7 @@ class CanvasView: UIView {
         insertMode = settings.insertMode
         doc.insertMode = insertMode
         doc.wordWrap = settings.wordWrap
+        doc.currentInk = settings.activeInk
         recalcLayout()
         applyCanvasOpacityForMarginsMode()
         setNeedsDisplay()
@@ -378,6 +387,11 @@ class CanvasView: UIView {
             resetCursorBlink()
             setNeedsDisplay()
             return
+        case .keyboardF11:
+            onCycleInkShortcut?()
+            resetCursorBlink()
+            setNeedsDisplay()
+            return
         case .keyboardF12:
             onToggleSoundsShortcut?()
             resetCursorBlink()
@@ -570,7 +584,6 @@ class CanvasView: UIView {
         let cellW = font.cellWidth
         let cellH = font.cellHeight
 
-        let fgColor = theme.ink.cgColor
         let bgColor = theme.paper.cgColor
 
         let viewRows = min(page.rows, layout.rows)
@@ -608,11 +621,10 @@ class CanvasView: UIView {
                            fg: theme.lineNumberInk.cgColor, bg: bgColor)
             }
 
-            // Text row
-            let rowStr = page.rowString(bufferRow)
+            // Text row (per-cell ink for inline red/blue)
+            let rowCells = page.rowTwCells(bufferRow)
             let rowX = layout.textX0
-            drawString(ctx: ctx, font: font, string: rowStr, x: rowX, y: rowY,
-                       fg: fgColor, bg: bgColor)
+            drawTwRow(ctx: ctx, font: font, cells: rowCells, x: rowX, y: rowY, theme: theme, paperBG: bgColor)
         }
     }
 
@@ -679,6 +691,24 @@ class CanvasView: UIView {
             guard c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 else { continue }
             let str = String(c)
             let attrStr = NSAttributedString(string: str, attributes: attrs)
+            attrStr.draw(at: CGPoint(x: currentX, y: y))
+            currentX += font.cellWidth
+        }
+    }
+
+    private func drawTwRow(ctx: CGContext, font: TypewriterFont, cells: [TwCell], x: CGFloat, y: CGFloat,
+                           theme: PaperTheme, paperBG: CGColor) {
+        let uiFont = UIFont(name: CTFontCopyPostScriptName(font.ctFont) as String, size: CTFontGetSize(font.ctFont)) ?? UIFont.systemFont(ofSize: CTFontGetSize(font.ctFont))
+        var currentX = x
+        for cell in cells {
+            let c = cell.ch
+            guard c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 else { continue }
+            let fg = theme.inlinePlatformInk(cell.ink).cgColor
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: uiFont,
+                .foregroundColor: UIColor(cgColor: fg)
+            ]
+            let attrStr = NSAttributedString(string: String(c), attributes: attrs)
             attrStr.draw(at: CGPoint(x: currentX, y: y))
             currentX += font.cellWidth
         }

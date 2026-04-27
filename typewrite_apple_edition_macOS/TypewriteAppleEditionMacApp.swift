@@ -13,7 +13,7 @@ private func postEditorMenuAction(_ action: EditorMenuAction) {
 @main
 struct TypewriteAppleEditionMacApp: App {
     var body: some Scene {
-        DocumentGroup(newDocument: { PlainTextDocument() }) { file in
+        DocumentGroup(newDocument: { TypewriteDocument() }) { file in
             EditorView(document: file.document)
         }
         .commands {

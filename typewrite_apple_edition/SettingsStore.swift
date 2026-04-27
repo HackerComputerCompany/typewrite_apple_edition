@@ -113,6 +113,11 @@ class SettingsStore: ObservableObject {
         didSet { save() }
     }
 
+    /// 0 = default (theme ink), 1 = red, 2 = blue — used for the next typed characters.
+    @Published var inkColorIndex: Int {
+        didSet { save() }
+    }
+
     private let defaults = UserDefaults.standard
     private let prefix = "typewriter."
 
@@ -139,6 +144,8 @@ class SettingsStore: ObservableObject {
         soundEnabled = d.object(forKey: prefix + "soundEnabled") as? Bool ?? true
         let sp = d.object(forKey: prefix + "status_pulse") as? Int ?? 0
         statusPulseIndex = min(max(0, sp), Self.statusPulseCount - 1)
+        let ink = d.object(forKey: prefix + "inkColorIndex") as? Int ?? 0
+        inkColorIndex = min(max(0, ink), 2)
     }
 
     func save() {
@@ -158,6 +165,15 @@ class SettingsStore: ObservableObject {
         #endif
         defaults.set(soundEnabled, forKey: prefix + "soundEnabled")
         defaults.set(statusPulseIndex, forKey: prefix + "status_pulse")
+        defaults.set(inkColorIndex, forKey: prefix + "inkColorIndex")
+    }
+
+    var activeInk: InkColor {
+        InkColor(rawValue: UInt8(min(max(inkColorIndex, 0), 2))) ?? .ink
+    }
+
+    func cycleInkColor() {
+        inkColorIndex = (inkColorIndex + 1) % 3
     }
 
     var statusPulseIntervalSeconds: TimeInterval {

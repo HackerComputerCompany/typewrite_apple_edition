@@ -24,6 +24,7 @@ struct HelpOverlay: View {
         case toggleInsert = "toggleInsert"
         case toggleSounds = "toggleSounds"
         case cycleStatusPulse = "cycleStatusPulse"
+        case cycleInk = "cycleInk"
     }
 
     private var helpRows: [(String, String, String?)] {
@@ -35,6 +36,7 @@ struct HelpOverlay: View {
             ("F6", "Toggle Page Margins", "toggleMargins"),
             ("F7", "Cycle Columns (50\u{2013}65)", "cycleCols"),
             ("F8", "Toggle Typewriter View", "toggleTypewriter"),
+            ("F11", "Cycle ink (default / red / blue)", "cycleInk"),
             ("F9", "Check-in: every \(settings.statusPulseIntervalLabel) (cycle)", "cycleStatusPulse"),
             ("F10", "Toggle Word Wrap", "toggleWordWrap"),
             ("F12", "Toggle Sounds", "toggleSounds"),

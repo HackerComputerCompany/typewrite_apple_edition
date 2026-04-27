@@ -23,21 +23,21 @@ Native **iPad + macOS** port of [typewrite_os](https://github.com/HackerComputer
 
 ## Build
 
-The repository root folder is **`typewrite_apple_edition`** (same basename as `typewrite_apple_edition.xcodeproj`). Open that `.xcodeproj` in Xcode from this directory.
+The repository root folder is **`typewrite_apple_edition`**. Open `Typewrite.xcodeproj` in Xcode from this directory.
 
 iPad (example simulator):
 
 ```
-xcodebuild -project typewrite_apple_edition.xcodeproj -scheme typewrite_apple_edition -destination 'platform=iOS Simulator,name=iPad (A16)' build
+xcodebuild -project Typewrite.xcodeproj -scheme Typewrite -destination 'platform=iOS Simulator,name=iPad (A16)' build
 ```
 
 macOS:
 
 ```
-xcodebuild -project typewrite_apple_edition.xcodeproj -scheme typewrite_apple_edition_macOS -destination 'platform=macOS' build
+xcodebuild -project Typewrite.xcodeproj -scheme Typewrite_macOS -destination 'platform=macOS' build
 ```
 
-Or open `typewrite_apple_edition.xcodeproj` in Xcode 16+ and Cmd+R.
+Or open `Typewrite.xcodeproj` in Xcode 16+ and Cmd+R.
 
 **Changelog and bug write-ups:** [CHANGELOG.md](CHANGELOG.md) (release notes) and [docs/bug-reports/README.md](docs/bug-reports/README.md) (BR-00x technical reports, linked from the changelog).
 

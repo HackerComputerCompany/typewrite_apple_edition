@@ -33,6 +33,12 @@
 		C10000000000000000000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* Assets.xcassets */; };
 		C10000000000000000000021 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* Fonts */; };
 		C10000000000000000000022 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* Sounds */; };
+		D10000000000000000000001 /* TwCellTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000030 /* TwCellTypes.swift */; };
+		D10000000000000000000002 /* TwBinaryArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000031 /* TwBinaryArchive.swift */; };
+		D10000000000000000000003 /* TypewriteDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000032 /* TypewriteDocument.swift */; };
+		D20000000000000000000001 /* TwCellTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000030 /* TwCellTypes.swift */; };
+		D20000000000000000000002 /* TwBinaryArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000031 /* TwBinaryArchive.swift */; };
+		D20000000000000000000003 /* TypewriteDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000032 /* TypewriteDocument.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,7 +47,7 @@
 		A20000000000000000000003 /* PaperTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperTheme.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A30000000000000000000001 /* typewrite_apple_edition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = typewrite_apple_edition.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000000000000000000001 /* Typewrite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Typewrite.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000001 /* CanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasView.swift; sourceTree = "<group>"; };
 		B20000000000000000000003 /* DocumentModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentModel.swift; sourceTree = "<group>"; };
 		B20000000000000000000004 /* FontRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistry.swift; sourceTree = "<group>"; };
@@ -52,7 +58,11 @@
 		B20000000000000000000009 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sounds; sourceTree = "<group>"; };
 		C20000000000000000000010 /* TypewriteAppleEditionMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriteAppleEditionMacApp.swift; sourceTree = "<group>"; };
 		C20000000000000000000011 /* CanvasNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasNSView.swift; sourceTree = "<group>"; };
-		C30000000000000000000002 /* typewrite_apple_edition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = typewrite_apple_edition.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C30000000000000000000002 /* Typewrite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Typewrite.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D20000000000000000000030 /* TwCellTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwCellTypes.swift; sourceTree = "<group>"; };
+		D20000000000000000000031 /* TwBinaryArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwBinaryArchive.swift; sourceTree = "<group>"; };
+		D20000000000000000000032 /* TypewriteDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriteDocument.swift; sourceTree = "<group>"; };
+		E20000000000000000000001 /* TypewriteUTIExport.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TypewriteUTIExport.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +108,10 @@
 				B20000000000000000000007 /* HelpOverlay.swift */,
 				B20000000000000000000008 /* Fonts */,
 				B20000000000000000000009 /* Sounds */,
+				D20000000000000000000030 /* TwCellTypes.swift */,
+				D20000000000000000000031 /* TwBinaryArchive.swift */,
+				D20000000000000000000032 /* TypewriteDocument.swift */,
+				E20000000000000000000001 /* TypewriteUTIExport.plist */,
 			);
 			path = typewrite_apple_edition;
 			sourceTree = "<group>";
@@ -123,7 +137,7 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A60000000000000000000001 /* typewrite_apple_edition */ = {
+		A60000000000000000000001 /* Typewrite */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "typewrite_apple_edition" */;
 			buildPhases = (
@@ -135,12 +149,12 @@
 			);
 			dependencies = (
 			);
-			name = typewrite_apple_edition;
+			name = Typewrite;
 			productName = typewrite_apple_edition;
-			productReference = A30000000000000000000001 /* typewrite_apple_edition.app */;
+			productReference = A30000000000000000000001 /* Typewrite.app */;
 			productType = "com.apple.product-type.application";
 		};
-		C60000000000000000000002 /* typewrite_apple_edition_macOS */ = {
+		C60000000000000000000002 /* Typewrite_macOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C70000000000000000000005 /* Build configuration list for PBXNativeTarget "typewrite_apple_edition_macOS" */;
 			buildPhases = (
@@ -152,9 +166,9 @@
 			);
 			dependencies = (
 			);
-			name = typewrite_apple_edition_macOS;
+			name = Typewrite_macOS;
 			productName = typewrite_apple_edition;
-			productReference = C30000000000000000000002 /* typewrite_apple_edition.app */;
+			productReference = C30000000000000000000002 /* Typewrite.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -165,7 +179,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					A60000000000000000000001 = {
 						CreatedOnToolsVersion = 16.2;
@@ -232,6 +246,9 @@
 				B10000000000000000000005 /* SoundManager.swift in Sources */,
 				B10000000000000000000006 /* SettingsStore.swift in Sources */,
 				B10000000000000000000007 /* HelpOverlay.swift in Sources */,
+				D10000000000000000000001 /* TwCellTypes.swift in Sources */,
+				D10000000000000000000002 /* TwBinaryArchive.swift in Sources */,
+				D10000000000000000000003 /* TypewriteDocument.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +266,9 @@
 				C10000000000000000000017 /* SoundManager.swift in Sources */,
 				C10000000000000000000018 /* SettingsStore.swift in Sources */,
 				C10000000000000000000019 /* HelpOverlay.swift in Sources */,
+				D20000000000000000000001 /* TwCellTypes.swift in Sources */,
+				D20000000000000000000002 /* TwBinaryArchive.swift in Sources */,
+				D20000000000000000000003 /* TypewriteDocument.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -289,6 +309,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -353,6 +374,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -383,10 +405,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
+				INFOPLIST_FILE = typewrite_apple_edition/TypewriteUTIExport.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -399,7 +421,7 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition;
-				PRODUCT_NAME = typewrite_apple_edition;
+				PRODUCT_NAME = Typewrite;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -417,10 +439,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FX5JML3WC4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
+				INFOPLIST_FILE = typewrite_apple_edition/TypewriteUTIExport.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -433,7 +455,7 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition;
-				PRODUCT_NAME = typewrite_apple_edition;
+				PRODUCT_NAME = Typewrite;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -451,10 +473,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FX5JML3WC4;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
+				INFOPLIST_FILE = typewrite_apple_edition/TypewriteUTIExport.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -463,7 +486,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition.macOS;
-				PRODUCT_NAME = typewrite_apple_edition;
+				PRODUCT_NAME = Typewrite;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -478,10 +501,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FX5JML3WC4;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Typewrite Apple Edition";
+				INFOPLIST_FILE = typewrite_apple_edition/TypewriteUTIExport.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Typewrite;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -490,7 +514,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hackercomputercompany.typewrite.apple.edition.macOS;
-				PRODUCT_NAME = typewrite_apple_edition;
+				PRODUCT_NAME = Typewrite;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;

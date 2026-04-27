@@ -14,6 +14,7 @@ final class CanvasNSView: NSView {
     var onTypingSessionInput: ((TypingSessionInput) -> Void)?
     var onStatusPulseShortcut: (() -> Void)?
     var onToggleSoundsShortcut: (() -> Void)?
+    var onCycleInkShortcut: (() -> Void)?
     var onDocInfoUpdate: ((Int, Int) -> Void)?
 
     private var blinkTimer: Timer?
@@ -58,6 +59,12 @@ final class CanvasNSView: NSView {
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+        doc.bellHandler = { [weak self] in
+            self?.soundManager.playBell(for: self?.fontIndex ?? 2)
+        }
+    }
+
+    func rebindDocumentBell() {
         doc.bellHandler = { [weak self] in
             self?.soundManager.playBell(for: self?.fontIndex ?? 2)
         }
@@ -118,6 +125,7 @@ final class CanvasNSView: NSView {
         insertMode = settings.insertMode
         doc.insertMode = insertMode
         doc.wordWrap = settings.wordWrap
+        doc.currentInk = settings.activeInk
         recalcLayout()
         needsDisplay = true
     }
@@ -275,6 +283,10 @@ final class CanvasNSView: NSView {
         case 114: toggleInsertMode(); return
         case 101: // F9 — cycle status check-in interval (X11)
             onStatusPulseShortcut?()
+            needsDisplay = true
+            return
+        case 103: // F11 — cycle default / red / blue ink
+            onCycleInkShortcut?()
             needsDisplay = true
             return
         case 111: // F12 — toggle sounds
@@ -465,7 +477,6 @@ final class CanvasNSView: NSView {
         let cellW = font.cellWidth
         let cellH = font.cellHeight
 
-        let fgColor = theme.ink.cgColor
         let bgColor = theme.paper.cgColor
 
         let viewRows = min(page.rows, viewLayout.rows)
@@ -502,10 +513,9 @@ final class CanvasNSView: NSView {
                            fg: theme.lineNumberInk.cgColor, bg: bgColor)
             }
 
-            let rowStr = page.rowString(bufferRow)
+            let rowCells = page.rowTwCells(bufferRow)
             let rowX = viewLayout.textX0
-            drawString(ctx: ctx, font: font, string: rowStr, x: rowX, y: rowY,
-                       fg: fgColor, bg: bgColor)
+            drawTwRow(ctx: ctx, font: font, cells: rowCells, x: rowX, y: rowY, theme: theme)
         }
     }
 
@@ -566,6 +576,26 @@ final class CanvasNSView: NSView {
             guard c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 else { continue }
             let str = String(c)
             let attrStr = NSAttributedString(string: str, attributes: attrs)
+            attrStr.draw(at: CGPoint(x: currentX, y: y))
+            currentX += font.cellWidth
+        }
+    }
+
+    private func drawTwRow(ctx: CGContext, font: TypewriterFont, cells: [TwCell], x: CGFloat, y: CGFloat, theme: PaperTheme) {
+        let ps = CTFontCopyPostScriptName(font.ctFont) as String
+        let size = CTFontGetSize(font.ctFont)
+        let nsBase = NSFont(name: ps, size: size)
+            ?? NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        var currentX = x
+        for cell in cells {
+            let c = cell.ch
+            guard c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 else { continue }
+            let fg = theme.inlinePlatformInk(cell.ink).cgColor
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: nsBase,
+                .foregroundColor: NSColor(cgColor: fg) ?? .textColor
+            ]
+            let attrStr = NSAttributedString(string: String(c), attributes: attrs)
             attrStr.draw(at: CGPoint(x: currentX, y: y))
             currentX += font.cellWidth
         }

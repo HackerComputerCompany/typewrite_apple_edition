@@ -25,22 +25,22 @@ struct TwCore {
     var rows: Int
     var cx: Int = 0
     var cy: Int = 0
-    var cells: [Character]
+    var cells: [TwCell]
 
     init(cols: Int, rows: Int) {
         self.cols = cols
         self.rows = rows
-        self.cells = [Character](repeating: " ", count: cols * rows)
+        self.cells = [TwCell](repeating: .space, count: cols * rows)
     }
 
-    func cell(at col: Int, row: Int) -> Character {
-        guard col >= 0, col < cols, row >= 0, row < rows else { return " " }
+    func cell(at col: Int, row: Int) -> TwCell {
+        guard col >= 0, col < cols, row >= 0, row < rows else { return .space }
         return cells[row * cols + col]
     }
 
-    mutating func putc(_ c: Character) -> (wrapped: Bool, newPageNeeded: Bool) {
+    mutating func putc(_ c: Character, ink: InkColor) -> (wrapped: Bool, newPageNeeded: Bool) {
         guard cx < cols && cy < rows else { return (false, false) }
-        cells[cy * cols + cx] = c
+        cells[cy * cols + cx] = TwCell(c, ink)
         cx += 1
         if cx >= cols {
             if cy < rows - 1 {
@@ -58,14 +58,14 @@ struct TwCore {
     mutating func backspace() {
         if cx > 0 {
             cx -= 1
-            cells[cy * cols + cx] = " "
+            cells[cy * cols + cx] = .space
         } else if cy > 0 {
             cy -= 1
             cx = cols - 1
-            while cx > 0 && cells[cy * cols + cx] == " " {
+            while cx > 0 && cells[cy * cols + cx].ch == " " {
                 cx -= 1
             }
-            if cells[cy * cols + cx] != " " { cx += 1 }
+            if cells[cy * cols + cx].ch != " " { cx += 1 }
         }
     }
 
@@ -77,7 +77,7 @@ struct TwCore {
     }
 
     mutating func clear() {
-        cells = [Character](repeating: " ", count: cols * rows)
+        cells = [TwCell](repeating: .space, count: cols * rows)
         cx = 0
         cy = 0
     }
@@ -85,7 +85,14 @@ struct TwCore {
     func rowString(_ row: Int) -> String {
         guard row >= 0, row < rows else { return "" }
         let start = row * cols
-        return String(cells[start..<(start + cols)])
+        return String(cells[start..<(start + cols)].map(\.ch))
+    }
+
+    /// Screen row in row-major order (one page).
+    func rowTwCells(_ row: Int) -> [TwCell] {
+        guard row >= 0, row < rows else { return [] }
+        let start = row * cols
+        return Array(cells[start..<(start + cols)])
     }
 }
 
@@ -94,6 +101,8 @@ class TwDoc {
     var curPage: Int = 0
     var insertMode: Bool = false
     var wordWrap: Bool = true
+    /// Ink for the next typed / pasted printable character.
+    var currentInk: InkColor = .ink
 
     var cols: Int
     var rows: Int
@@ -110,26 +119,36 @@ class TwDoc {
     }
 
     func putc(_ c: Character) {
+        putGlyph(c, ink: currentInk)
+    }
+
+    /// Puts a printable cell with an explicit ink (used when replaying `resize` and plain-text `load`).
+    func putGlyph(_ c: Character, ink: InkColor) {
         if c == "\t" { return }
-        // Unicode spaces (NBSP U+00A0, em space, ideographic space, etc.) are not ASCII; map to grid space.
         let g: Character = (c.isWhitespace && !c.isNewline) ? " " : c
         guard g.isASCII, g.asciiValue! >= 32, g.asciiValue! <= 126 else { return }
         let page = pages[curPage]
         let isLastRow = page.cy >= rows - 1
-
         if insertMode {
-            insertPutc(g, isLastRow: isLastRow)
+            insertPutc(TwCell(g, ink), isLastRow: isLastRow)
         } else {
-            typeoverPutc(g, isLastRow: isLastRow)
+            typeoverPutc(TwCell(g, ink), isLastRow: isLastRow)
         }
     }
 
     var bellHandler: (() -> Void)?
 
+    private func withBellSuppressed<T>(_ body: () throws -> T) rethrows -> T {
+        let saved = bellHandler
+        bellHandler = nil
+        defer { bellHandler = saved }
+        return try body()
+    }
+
     private func rowAllSpaces(_ tw: TwCore, row: Int) -> Bool {
         guard row >= 0, row < rows else { return true }
         let base = row * cols
-        for i in 0..<cols where tw.cells[base + i] != " " { return false }
+        for i in 0..<cols where tw.cells[base + i].ch != " " { return false }
         return true
     }
 
@@ -144,7 +163,7 @@ class TwDoc {
 
         var lastNs = -1
         for i in stride(from: cols - 1, through: 0, by: -1) {
-            if pages[curPage].cells[rowBase + i] != " " {
+            if pages[curPage].cells[rowBase + i].ch != " " {
                 lastNs = i
                 break
             }
@@ -153,7 +172,7 @@ class TwDoc {
 
         var sp = -1
         for i in stride(from: lastNs - 1, through: 0, by: -1) {
-            if pages[curPage].cells[rowBase + i] == " " {
+            if pages[curPage].cells[rowBase + i].ch == " " {
                 sp = i
                 break
             }
@@ -167,20 +186,20 @@ class TwDoc {
             guard rowAllSpaces(pages[curPage], row: cy + 1) else { return false }
         }
 
-        var buf: [Character] = []
+        var buf: [TwCell] = []
         buf.reserveCapacity(tailLen)
         for i in 0..<tailLen {
             buf.append(pages[curPage].cells[rowBase + sp + 1 + i])
         }
         for i in (sp + 1)..<cols {
-            pages[curPage].cells[rowBase + i] = " "
+            pages[curPage].cells[rowBase + i] = .space
         }
 
         newline()
         var tw = pages[curPage]
         let nrow = tw.cy * cols
         for i in 0..<cols {
-            tw.cells[nrow + i] = " "
+            tw.cells[nrow + i] = .space
         }
         for i in 0..<tailLen {
             tw.cells[nrow + i] = buf[i]
@@ -198,11 +217,11 @@ class TwDoc {
         }
     }
 
-    private func typeoverPutc(_ c: Character, isLastRow: Bool) {
+    private func typeoverPutc(_ cell: TwCell, isLastRow: Bool) {
         let oldCy = pages[curPage].cy
         var tw = pages[curPage]
         guard tw.cx < cols && tw.cy < rows else { return }
-        tw.cells[tw.cy * cols + tw.cx] = c
+        tw.cells[tw.cy * cols + tw.cx] = cell
         tw.cx += 1
         pages[curPage] = tw
 
@@ -224,7 +243,7 @@ class TwDoc {
         typeoverBellIfNeeded(oldCy: oldCy, isLastRow: isLastRow)
     }
 
-    private func insertPutc(_ c: Character, isLastRow: Bool) {
+    private func insertPutc(_ cell: TwCell, isLastRow: Bool) {
         let p = pages[curPage]
         let row = p.cy
         let col = p.cx
@@ -233,7 +252,7 @@ class TwDoc {
                 pages[curPage].cells[row * cols + x + 1] = pages[curPage].cells[row * cols + x]
             }
         }
-        pages[curPage].cells[row * cols + col] = c
+        pages[curPage].cells[row * cols + col] = cell
         pages[curPage].cx = col + 1
         if pages[curPage].cx >= cols {
             if trySoftWrap() {
@@ -267,7 +286,7 @@ class TwDoc {
         for x in col..<(cols - 1) {
             pages[curPage].cells[row * cols + x] = pages[curPage].cells[row * cols + x + 1]
         }
-        pages[curPage].cells[row * cols + cols - 1] = " "
+        pages[curPage].cells[row * cols + cols - 1] = .space
     }
 
     func moveLeft() {
@@ -326,7 +345,7 @@ class TwDoc {
         let p = pages[curPage]
         var lastNonSpace = -1
         for x in 0..<cols {
-            if p.cells[p.cy * cols + x] != " " { lastNonSpace = x }
+            if p.cells[p.cy * cols + x].ch != " " { lastNonSpace = x }
         }
         if lastNonSpace == -1 {
             pages[curPage].cx = 0
@@ -349,57 +368,103 @@ class TwDoc {
         curPage += 1
     }
 
-    func resize(cols newCols: Int, rows newRows: Int) {
-        let text = fullText()
-        let oldCy = pages[curPage].cy
-        let oldCx = pages[curPage].cx
-        let offset = oldCy * cols + oldCx
+    /// Full grid, row-major: one op per cell, newlines between rows, form feed between pages.
+    /// Matches a global **flat cell index** so cursor restoration is stable across column/row changes (unlike `fullText()` rtrim).
+    private static func buildResizeOps(pages: [TwCore], cols: Int, rows: Int) -> [TwResizeOp] {
+        var out: [TwResizeOp] = []
+        for (i, page) in pages.enumerated() {
+            if i > 0 { out.append(.formFeed) }
+            for row in 0..<rows {
+                for col in 0..<cols {
+                    let cell = page.cells[row * cols + col]
+                    out.append(.glyph(cell.ch, cell.ink))
+                }
+                if row < rows - 1 { out.append(.newline) }
+            }
+        }
+        return out
+    }
 
-        // Replaying `fullText()` must not use insert mode (row shifts) or drop newlines — `putc` only accepts
-        // ASCII 32…126, so `\n` / Unicode line breaks were ignored and all rows collapsed into one line.
+    /// Linear index of the cursor’s “next write” cell in row-major order across all pages (same order as `buildResizeOps` glyphs).
+    private static func flatCellIndexBeforeWrite(curPage: Int, cx: Int, cy: Int, cols: Int, rows: Int) -> Int {
+        curPage * (rows * cols) + cy * cols + cx
+    }
+
+    func resize(cols newCols: Int, rows newRows: Int) {
+        guard newCols > 0, newRows > 0 else { return }
+        let oldPages = pages
+        let oldCols = cols
+        let oldRows = rows
+        let oldCurPage = curPage
+        let oldCy = oldPages[oldCurPage].cy
+        let oldCx = oldPages[oldCurPage].cx
+
+        /// How many `putGlyph` calls match the cursor position in the **old** grid stream (full rows, no rtrim).
+        let targetGlyphCount = Self.flatCellIndexBeforeWrite(curPage: oldCurPage, cx: oldCx, cy: oldCy, cols: oldCols, rows: oldRows)
+
+        let ops = Self.buildResizeOps(pages: oldPages, cols: oldCols, rows: oldRows)
+
         let savedInsert = insertMode
+        let savedInk = currentInk
+        let savedWordWrap = wordWrap
         insertMode = false
-        defer { insertMode = savedInsert }
+        wordWrap = false
+        defer { insertMode = savedInsert; currentInk = savedInk; wordWrap = savedWordWrap }
 
         cols = newCols
         rows = newRows
         pages = [TwCore(cols: newCols, rows: newRows)]
         curPage = 0
-        var charCount = 0
+        var glyphCount = 0
         var targetCx = 0
         var targetCy = 0
         var targetPage = 0
-        for c in text {
-            if c == "\u{0C}" {
-                newPage()
-                pages[curPage].cx = 0
-                pages[curPage].cy = 0
-                continue
-            }
-            if c == "\n" || c == "\r" {
-                newline()
-                continue
-            }
-            if c.isNewline {
-                newline()
-                continue
-            }
-            putc(c)
-            charCount += 1
-            if charCount == offset || (charCount > offset && targetPage == 0) {
-                targetCx = pages[curPage].cx
-                targetCy = pages[curPage].cy
-                targetPage = curPage
+        var snapped = false
+        if targetGlyphCount == 0 {
+            targetCx = 0
+            targetCy = 0
+            targetPage = 0
+            snapped = true
+        }
+
+        withBellSuppressed {
+            for op in ops {
+                switch op {
+                case .formFeed:
+                    newPage()
+                    pages[curPage].cx = 0
+                    pages[curPage].cy = 0
+                case .newline:
+                    newline()
+                case .glyph(let c, let ink):
+                    putGlyph(c, ink: ink)
+                    glyphCount += 1
+                    if glyphCount == targetGlyphCount {
+                        targetCx = pages[curPage].cx
+                        targetCy = pages[curPage].cy
+                        targetPage = curPage
+                        snapped = true
+                    }
+                }
             }
         }
-        if pages.count == 1 && pages[0].cells.allSatisfy({ $0 == " " }) {
+        if pages.count == 1 && pages[0].cells.allSatisfy({ $0 == .space }) {
             curPage = 0
             pages[0].cx = 0
             pages[0].cy = 0
-        } else {
+        } else if snapped {
             curPage = min(targetPage, pages.count - 1)
             pages[curPage].cx = targetCx
             pages[curPage].cy = targetCy
+        } else {
+            // Empty stream or index past end — park at end or (0,0)
+            if glyphCount == 0 {
+                curPage = 0
+                pages[0].cx = 0
+                pages[0].cy = 0
+            } else {
+                positionCursorAtDocumentEnd()
+            }
         }
     }
 
@@ -426,8 +491,10 @@ class TwDoc {
     func load(_ text: String) {
         // Insert mode would shift the grid on each `putc` and destroy imported layout.
         let savedInsert = insertMode
+        let savedInk = currentInk
         insertMode = false
-        defer { insertMode = savedInsert }
+        currentInk = .ink
+        defer { insertMode = savedInsert; currentInk = savedInk }
 
         // Normalize common line endings, then split on the full newline set (per-`Character` iteration is unreliable for NEL, LS, PS, etc.).
         let normalized = text
@@ -439,32 +506,34 @@ class TwDoc {
         pages = [TwCore(cols: cols, rows: rows)]
         curPage = 0
 
-        for (lineIndex, line) in lines.enumerated() {
-            for c in line {
-                if c == "\u{0C}" {
-                    newPage()
-                    pages[curPage].cx = 0
-                    pages[curPage].cy = 0
-                    continue
+        withBellSuppressed {
+            for (lineIndex, line) in lines.enumerated() {
+                for c in line {
+                    if c == "\u{0C}" {
+                        newPage()
+                        pages[curPage].cx = 0
+                        pages[curPage].cy = 0
+                        continue
+                    }
+                    if c == "\t" {
+                        for _ in 0..<4 { putGlyph(" ", ink: .ink) }
+                        continue
+                    }
+                    if c.isNewline {
+                        newline()
+                        continue
+                    }
+                    if c.isWhitespace, !c.isNewline {
+                        putGlyph(" ", ink: .ink)
+                        continue
+                    }
+                    if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 {
+                        putGlyph(c, ink: .ink)
+                    }
                 }
-                if c == "\t" {
-                    for _ in 0..<4 { putc(" ") }
-                    continue
-                }
-                if c.isNewline {
+                if lineIndex < lines.count - 1 {
                     newline()
-                    continue
                 }
-                if c.isWhitespace, !c.isNewline {
-                    putc(" ")
-                    continue
-                }
-                if c.isASCII, let ascii = c.asciiValue, ascii >= 32, ascii <= 126 {
-                    putc(c)
-                }
-            }
-            if lineIndex < lines.count - 1 {
-                newline()
             }
         }
         // Leave the cursor at the end of the loaded text (do not force 0,0 on page 0). Matching X11’s twdoc_load
@@ -481,6 +550,39 @@ class TwDoc {
             }
         }
         return count
+    }
+
+    /// Places the cursor on the last page just after the last non-space character (typical end-of-typing), or `(0,0)` if empty.
+    func positionCursorAtDocumentEnd() {
+        for pi in (0..<pages.count).reversed() {
+            curPage = pi
+            let page = pages[pi]
+            for r in (0..<rows).reversed() {
+                let base = r * cols
+                for c in (0..<cols).reversed() {
+                    if page.cells[base + c].ch != " " {
+                        if c < cols - 1 {
+                            pages[curPage].cx = c + 1
+                            pages[curPage].cy = r
+                        } else {
+                            if r < rows - 1 {
+                                pages[curPage].cx = 0
+                                pages[curPage].cy = r + 1
+                            } else {
+                                pages[curPage].cx = c
+                                pages[curPage].cy = r
+                            }
+                        }
+                        return
+                    }
+                }
+            }
+        }
+        if !pages.isEmpty {
+            curPage = 0
+            pages[0].cx = 0
+            pages[0].cy = 0
+        }
     }
 }
 
@@ -558,5 +660,15 @@ final class WritingSessionTracker: ObservableObject {
         tf.dateFormat = "HH:mm"
         let timestr = tf.string(from: Date())
         return "\(wpm) wpm | session \(sessWords) words | doc \(docWords) words | \(timestr)"
+    }
+
+    /// Persisted inside the binary `.twd` bundle.
+    func sessionMetadataForArchive() -> TwSessionMetadata {
+        TwSessionMetadata(sessionTypingUnits: sessionTypingUnits, emaMsPerChar: emaMsPerChar, savedAt: Date())
+    }
+
+    func applySessionMetadata(_ m: TwSessionMetadata) {
+        sessionTypingUnits = m.sessionTypingUnits
+        emaMsPerChar = m.emaMsPerChar
     }
 }
