@@ -1,5 +1,7 @@
 build/
 DerivedData/
+.deriveddata-macos-release/
+dist/
 *.xcuserstate
 xcuserdata/
 .DS_Store
